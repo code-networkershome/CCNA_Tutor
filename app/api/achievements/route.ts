@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { eq, and, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 // Achievement definitions
 const ACHIEVEMENTS = [
     // Learning milestones
