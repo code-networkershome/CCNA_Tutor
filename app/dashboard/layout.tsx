@@ -7,7 +7,7 @@ import type { SessionUser } from '@/types';
 
 const adminNavItems = [
     { href: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { href: '/dashboard/knowledge', icon: '📚', label: 'Knowledge' },
+    // Knowledge removed
     { href: '/dashboard/flashcards', icon: '🎴', label: 'Flashcards' },
     { href: '/dashboard/generation', icon: '🤖', label: 'Generation' },
     { href: '/dashboard/review', icon: '✅', label: 'Review Queue' },
