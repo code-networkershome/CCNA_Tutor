@@ -56,6 +56,51 @@ function isValidSubnetMask(mask: string): boolean {
 }
 
 /**
+ * Validates an interface name
+ */
+function isValidInterface(iface: string): boolean {
+    // Common interface patterns
+    const patterns = [
+        /^g(?:i(?:gabitethernet)?)?[0-9]+\/[0-9]+(?:\/[0-9]+)?$/i,
+        /^fa(?:stethernet)?[0-9]+\/[0-9]+$/i,
+        /^e(?:thernet)?[0-9]+\/[0-9]+$/i,
+        /^s(?:erial)?[0-9]+\/[0-9]+(?:\/[0-9]+)?$/i,
+        /^lo(?:opback)?[0-9]+$/i,
+        /^vlan[0-9]+$/i,
+        /^po(?:rt-channel)?[0-9]+$/i,
+        /^tu(?:nnel)?[0-9]+$/i,
+    ];
+    return patterns.some(p => p.test(iface));
+}
+
+/**
+ * Validates a VLAN ID (1-4094)
+ */
+function isValidVlanId(vlanId: string): boolean {
+    const num = parseInt(vlanId, 10);
+    return !isNaN(num) && num >= 1 && num <= 4094;
+}
+
+/**
+ * Validates OSPF process ID (1-65535)
+ */
+function isValidOspfProcessId(id: string): boolean {
+    const num = parseInt(id, 10);
+    return !isNaN(num) && num >= 1 && num <= 65535;
+}
+
+/**
+ * Validates OSPF area ID (0-4294967295 or dotted decimal)
+ */
+function isValidOspfArea(area: string): boolean {
+    // Numeric area ID
+    const num = parseInt(area, 10);
+    if (!isNaN(num) && num >= 0 && num <= 4294967295) return true;
+    // Dotted decimal area ID
+    return isValidIPv4(area);
+}
+
+/**
  * Pre-validates IP-related commands before sending to LLM
  * Returns an error response if validation fails, null if command passes validation
  */
@@ -86,10 +131,10 @@ function preValidateCommand(command: string): CLIResponse | null {
         }
     }
 
-    // Check for other IP-related commands (static routes, ACLs, etc.)
-    const staticRouteMatch = command.match(/ip\s+route\s+(\S+)\s+(\S+)/i);
+    // Check for static routes
+    const staticRouteMatch = command.match(/ip\s+route\s+(\S+)\s+(\S+)\s+(\S+)/i);
     if (staticRouteMatch) {
-        const [, network, mask] = staticRouteMatch;
+        const [, network, mask, nextHop] = staticRouteMatch;
         if (!isValidIPv4(network)) {
             return {
                 valid: false,
@@ -102,6 +147,127 @@ function preValidateCommand(command: string): CLIResponse | null {
                 valid: false,
                 output: `% Invalid input detected at '${mask}'.`,
                 error: 'Invalid subnet mask'
+            };
+        }
+        // Next hop can be IP or interface
+        if (!isValidIPv4(nextHop) && !isValidInterface(nextHop)) {
+            return {
+                valid: false,
+                output: `% Invalid next-hop address or interface: ${nextHop}`,
+                error: 'Invalid next-hop'
+            };
+        }
+    }
+
+    // Check for interface command
+    const interfaceMatch = command.match(/^int(?:erface)?\s+(\S+)/i);
+    if (interfaceMatch && !lowerCommand.startsWith('int ')) {
+        // Skip abbreviation "int" for now, validate full form
+    }
+    if (interfaceMatch) {
+        const iface = interfaceMatch[1];
+        if (!isValidInterface(iface) && !/^range\s/i.test(iface)) {
+            return {
+                valid: false,
+                output: `% Invalid interface type and target at '${iface}'`,
+                error: 'Invalid interface name'
+            };
+        }
+    }
+
+    // Check for VLAN commands
+    const vlanMatch = command.match(/vlan\s+(\d+)/i);
+    if (vlanMatch) {
+        const vlanId = vlanMatch[1];
+        if (!isValidVlanId(vlanId)) {
+            return {
+                valid: false,
+                output: `% VLAN ID must be between 1 and 4094`,
+                error: 'VLAN ID out of range'
+            };
+        }
+    }
+
+    // Check for switchport access vlan
+    const accessVlanMatch = command.match(/switchport\s+access\s+vlan\s+(\d+)/i);
+    if (accessVlanMatch) {
+        const vlanId = accessVlanMatch[1];
+        if (!isValidVlanId(vlanId)) {
+            return {
+                valid: false,
+                output: `% Access VLAN ID must be between 1 and 4094`,
+                error: 'VLAN ID out of range'
+            };
+        }
+    }
+
+    // Check for OSPF router command
+    const ospfMatch = command.match(/router\s+ospf\s+(\d+)/i);
+    if (ospfMatch) {
+        const processId = ospfMatch[1];
+        if (!isValidOspfProcessId(processId)) {
+            return {
+                valid: false,
+                output: `% OSPF process ID must be between 1 and 65535`,
+                error: 'OSPF process ID out of range'
+            };
+        }
+    }
+
+    // Check for OSPF network command
+    const ospfNetworkMatch = command.match(/network\s+(\S+)\s+(\S+)\s+area\s+(\S+)/i);
+    if (ospfNetworkMatch) {
+        const [, network, wildcard, area] = ospfNetworkMatch;
+        if (!isValidIPv4(network)) {
+            return {
+                valid: false,
+                output: `% Invalid network address: ${network}`,
+                error: 'Invalid network address'
+            };
+        }
+        if (!isValidIPv4(wildcard)) {
+            return {
+                valid: false,
+                output: `% Invalid wildcard mask: ${wildcard}`,
+                error: 'Invalid wildcard mask format'
+            };
+        }
+        if (!isValidOspfArea(area)) {
+            return {
+                valid: false,
+                output: `% Invalid OSPF area: ${area}`,
+                error: 'Invalid OSPF area ID'
+            };
+        }
+    }
+
+    // Check for default gateway
+    const defaultGwMatch = command.match(/ip\s+default-gateway\s+(\S+)/i);
+    if (defaultGwMatch) {
+        const gateway = defaultGwMatch[1];
+        if (!isValidIPv4(gateway)) {
+            return {
+                valid: false,
+                output: `% Invalid gateway address: ${gateway}`,
+                error: 'Invalid gateway IP address'
+            };
+        }
+    }
+
+    // Check for access-list (standard)
+    const aclMatch = command.match(/access-list\s+(\d+)/i);
+    if (aclMatch) {
+        const aclNum = parseInt(aclMatch[1], 10);
+        // Standard ACLs: 1-99, 1300-1999; Extended: 100-199, 2000-2699
+        const validRanges = [
+            [1, 99], [100, 199], [1300, 1999], [2000, 2699]
+        ];
+        const isValid = validRanges.some(([min, max]) => aclNum >= min && aclNum <= max);
+        if (!isValid) {
+            return {
+                valid: false,
+                output: `% Invalid access-list number: ${aclNum}.\n% Valid ranges: 1-99, 100-199, 1300-1999, 2000-2699`,
+                error: 'Invalid ACL number'
             };
         }
     }
