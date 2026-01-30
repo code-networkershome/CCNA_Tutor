@@ -14,6 +14,101 @@ export interface CLIResponse {
     error?: string;
 }
 
+// ========== VALIDATION FUNCTIONS ==========
+
+/**
+ * Validates an IP address (IPv4)
+ * @returns true if valid, false otherwise
+ */
+function isValidIPv4(ip: string): boolean {
+    const parts = ip.split('.');
+    if (parts.length !== 4) return false;
+
+    for (const part of parts) {
+        const num = parseInt(part, 10);
+        if (isNaN(num) || num < 0 || num > 255 || part !== num.toString()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Validates a subnet mask
+ * @returns true if valid, false otherwise
+ */
+function isValidSubnetMask(mask: string): boolean {
+    // First check basic IP format
+    if (!isValidIPv4(mask)) return false;
+
+    // Valid subnet masks (common ones)
+    const validMasks = [
+        '0.0.0.0', '128.0.0.0', '192.0.0.0', '224.0.0.0', '240.0.0.0',
+        '248.0.0.0', '252.0.0.0', '254.0.0.0', '255.0.0.0', '255.128.0.0',
+        '255.192.0.0', '255.224.0.0', '255.240.0.0', '255.248.0.0',
+        '255.252.0.0', '255.254.0.0', '255.255.0.0', '255.255.128.0',
+        '255.255.192.0', '255.255.224.0', '255.255.240.0', '255.255.248.0',
+        '255.255.252.0', '255.255.254.0', '255.255.255.0', '255.255.255.128',
+        '255.255.255.192', '255.255.255.224', '255.255.255.240',
+        '255.255.255.248', '255.255.255.252', '255.255.255.254', '255.255.255.255'
+    ];
+    return validMasks.includes(mask);
+}
+
+/**
+ * Pre-validates IP-related commands before sending to LLM
+ * Returns an error response if validation fails, null if command passes validation
+ */
+function preValidateCommand(command: string): CLIResponse | null {
+    const lowerCommand = command.toLowerCase().trim();
+
+    // Check for "ip address" command
+    const ipAddressMatch = command.match(/ip\s+add(?:ress)?\s+(\S+)\s+(\S+)/i);
+    if (ipAddressMatch) {
+        const [, ipAddress, subnetMask] = ipAddressMatch;
+
+        // Validate IP address
+        if (!isValidIPv4(ipAddress)) {
+            return {
+                valid: false,
+                output: `% Invalid IP address: ${ipAddress}`,
+                error: 'Invalid IPv4 address format'
+            };
+        }
+
+        // Validate subnet mask
+        if (!isValidSubnetMask(subnetMask)) {
+            return {
+                valid: false,
+                output: `% Invalid input detected at '${subnetMask}'.\n% Bad mask /xx for address ${ipAddress}`,
+                error: 'Invalid subnet mask'
+            };
+        }
+    }
+
+    // Check for other IP-related commands (static routes, ACLs, etc.)
+    const staticRouteMatch = command.match(/ip\s+route\s+(\S+)\s+(\S+)/i);
+    if (staticRouteMatch) {
+        const [, network, mask] = staticRouteMatch;
+        if (!isValidIPv4(network)) {
+            return {
+                valid: false,
+                output: `% Invalid network address: ${network}`,
+                error: 'Invalid IPv4 network address'
+            };
+        }
+        if (!isValidSubnetMask(mask)) {
+            return {
+                valid: false,
+                output: `% Invalid input detected at '${mask}'.`,
+                error: 'Invalid subnet mask'
+            };
+        }
+    }
+
+    return null; // Command passes validation
+}
+
 const SYSTEM_PROMPT = `You are a Cisco IOS CLI simulator for CCNA training. You must respond exactly like a real Cisco router or switch would.
 
 CURRENT DEVICE STATE:
@@ -38,6 +133,7 @@ RULES:
 4. For configuration commands, acknowledge silently (empty output) unless there's an error
 5. Return proper error messages for invalid commands: "% Invalid input detected" or "% Incomplete command."
 6. Understand interface naming: g0/0, gi0/0, GigabitEthernet0/0, s0/0/0, Serial0/0/0, fa0/1, FastEthernet0/1, lo0, Loopback0, vlan1, etc.
+7. IMPORTANT: Validate IP addresses (each octet 0-255) and subnet masks before accepting configuration commands
 
 RESPOND WITH VALID JSON ONLY (no markdown, no explanation):
 {
@@ -72,6 +168,12 @@ export async function interpretCommand(
     state: CLIState,
     command: string
 ): Promise<CLIResponse> {
+    // Pre-validate IP addresses and subnet masks BEFORE sending to LLM
+    const validationError = preValidateCommand(command);
+    if (validationError) {
+        return validationError;
+    }
+
     const modeNames: Record<string, string> = {
         user: 'User EXEC mode (Router>)',
         privileged: 'Privileged EXEC mode (Router#)',
