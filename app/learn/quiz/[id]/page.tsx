@@ -39,6 +39,35 @@ export default function TakeQuizPage() {
     const [result, setResult] = useState<any>(null);
     const [timeLeft, setTimeLeft] = useState(0);
     const [isLLMGenerated, setIsLLMGenerated] = useState(false);
+    const [quizTitle, setQuizTitle] = useState('Practice Quiz');
+
+    // Sample quiz mapping for fallback generation
+    const sampleQuizzes: Record<string, { title: string; topics: string[]; questionCount: number; timeLimit: number }> = {
+        '1': { title: 'Network Fundamentals', topics: ['OSI', 'TCP/IP'], questionCount: 10, timeLimit: 15 },
+        '2': { title: 'IPv4 Addressing', topics: ['IPv4', 'Subnetting'], questionCount: 15, timeLimit: 20 },
+        '3': { title: 'IPv6 Fundamentals', topics: ['IPv6'], questionCount: 10, timeLimit: 15 },
+        '4': { title: 'VLANs & Trunking', topics: ['VLAN', '802.1Q'], questionCount: 10, timeLimit: 12 },
+        '5': { title: 'Spanning Tree Protocol', topics: ['STP', 'RSTP'], questionCount: 10, timeLimit: 15 },
+        '6': { title: 'EtherChannel', topics: ['EtherChannel', 'LACP'], questionCount: 8, timeLimit: 10 },
+        '7': { title: 'Wireless Networking', topics: ['Wireless', 'WLAN'], questionCount: 10, timeLimit: 12 },
+        '8': { title: 'Static Routing', topics: ['Static Routing'], questionCount: 8, timeLimit: 10 },
+        '9': { title: 'OSPF Routing', topics: ['OSPF'], questionCount: 12, timeLimit: 15 },
+        '10': { title: 'First Hop Redundancy', topics: ['FHRP', 'HSRP'], questionCount: 8, timeLimit: 10 },
+        '11': { title: 'NAT & PAT', topics: ['NAT', 'PAT'], questionCount: 10, timeLimit: 12 },
+        '12': { title: 'DHCP & DNS', topics: ['DHCP', 'DNS'], questionCount: 8, timeLimit: 10 },
+        '13': { title: 'NTP & SNMP', topics: ['NTP', 'SNMP'], questionCount: 8, timeLimit: 10 },
+        '14': { title: 'QoS Fundamentals', topics: ['QoS'], questionCount: 8, timeLimit: 10 },
+        '15': { title: 'Access Control Lists', topics: ['ACL'], questionCount: 12, timeLimit: 15 },
+        '16': { title: 'Port Security', topics: ['Port Security'], questionCount: 10, timeLimit: 12 },
+        '17': { title: 'AAA & 802.1X', topics: ['AAA', '802.1X'], questionCount: 8, timeLimit: 10 },
+        '18': { title: 'VPN Fundamentals', topics: ['VPN', 'IPSec'], questionCount: 8, timeLimit: 10 },
+        '19': { title: 'Network Automation', topics: ['Automation', 'API'], questionCount: 10, timeLimit: 12 },
+        '20': { title: 'SDN & Controllers', topics: ['SDN', 'DNA Center'], questionCount: 8, timeLimit: 10 },
+        '21': { title: 'Configuration Management', topics: ['Ansible'], questionCount: 8, timeLimit: 10 },
+        '22': { title: 'Mixed Review', topics: ['Mixed'], questionCount: 20, timeLimit: 25 },
+        '23': { title: 'CCNA Practice Exam 1', topics: ['Exam'], questionCount: 50, timeLimit: 60 },
+        '24': { title: 'CCNA Practice Exam 2', topics: ['Exam'], questionCount: 50, timeLimit: 60 },
+    };
 
     useEffect(() => {
         const startQuiz = async () => {
@@ -56,21 +85,30 @@ export default function TakeQuizPage() {
                     setQuestions(data.data.questions);
                     setTimeLeft((data.data.quiz.timeLimit || 15) * 60);
                 } else {
-                    // Quiz not found, generate with LLM
+                    // Quiz not found in database, use sample quiz info for LLM generation
                     setIsLLMGenerated(true);
+
+                    const quizId = params.id as string;
+                    const sampleQuiz = sampleQuizzes[quizId];
+
+                    if (sampleQuiz) {
+                        setQuizTitle(sampleQuiz.title);
+                    }
+
                     const genRes = await fetch('/api/quiz/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            examType: 'ccna-full',
-                            questionCount: 10
+                            topic: sampleQuiz?.topics[0] || 'Networking',
+                            topics: sampleQuiz?.topics || ['Networking'],
+                            questionCount: sampleQuiz?.questionCount || 10
                         }),
                     });
 
                     const genData = await genRes.json();
                     if (genData.success) {
                         setQuestions(genData.data.questions);
-                        setTimeLeft(15 * 60); // 15 minutes for generated quiz
+                        setTimeLeft((sampleQuiz?.timeLimit || 15) * 60);
                     } else {
                         setError(genData.error || 'Failed to load quiz');
                     }
@@ -260,7 +298,7 @@ export default function TakeQuizPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-bold">{quizData?.quiz?.title || 'Practice Quiz'}</h1>
+                    <h1 className="text-xl font-bold">{quizData?.quiz?.title || quizTitle}</h1>
                     {isLLMGenerated && (
                         <span className="text-xs text-gray-500">AI-Generated Questions</span>
                     )}
@@ -306,8 +344,8 @@ export default function TakeQuizPage() {
                                 key={i}
                                 onClick={() => handleAnswer(currentQuestion.id, option)}
                                 className={`w-full p-4 text-left rounded-lg border transition-all ${isSelected
-                                        ? 'border-cisco-blue bg-cisco-blue/10'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-cisco-blue/50'
+                                    ? 'border-cisco-blue bg-cisco-blue/10'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-cisco-blue/50'
                                     }`}
                             >
                                 <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>

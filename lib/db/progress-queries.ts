@@ -20,7 +20,7 @@ export async function getUserProgress(userId: string) {
     }
 }
 
-// Initialize user progress
+// Initialize user progress - aligned with schema
 export async function initializeUserProgress(userId: string) {
     try {
         const [progress] = await db
@@ -33,7 +33,7 @@ export async function initializeUserProgress(userId: string) {
                 totalTimeSpent: 0,
                 level: 1,
                 experiencePoints: 0,
-                topicsCompleted: 0,
+                // Note: topicsCompleted doesn't exist in schema, removed
             })
             .onConflictDoNothing()
             .returning();
@@ -61,7 +61,7 @@ export async function getTopicProgressForUser(userId: string) {
     }
 }
 
-// Update user progress
+// Update user progress - aligned with schema fields
 export async function updateUserProgress(
     userId: string,
     updates: {
@@ -70,7 +70,6 @@ export async function updateUserProgress(
         currentStreak?: number;
         longestStreak?: number;
         level?: number;
-        topicsCompleted?: number;
     }
 ) {
     try {
@@ -78,7 +77,7 @@ export async function updateUserProgress(
             .update(userProgress)
             .set({
                 ...updates,
-                lastStudyDate: new Date(),
+                lastActivityAt: new Date(),
                 updatedAt: new Date(),
             })
             .where(and(

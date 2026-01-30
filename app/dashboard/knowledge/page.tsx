@@ -25,6 +25,7 @@ const emptyNode = {
     cliExample: '',
     examNote: '',
     estimatedMinutes: 10,
+    publishImmediately: true,
 };
 
 export default function KnowledgePage() {
@@ -57,13 +58,16 @@ export default function KnowledgePage() {
         fetchNodes();
     }, []);
 
-    const handleAddNode = async () => {
+    const handleAddNode = async (publishNow: boolean = false) => {
         setSaving(true);
         try {
             const res = await fetch('/api/admin/knowledge', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newNode),
+                body: JSON.stringify({
+                    ...newNode,
+                    publishImmediately: publishNow,
+                }),
             });
 
             if (res.ok) {
@@ -368,8 +372,19 @@ export default function KnowledgePage() {
 
                         <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
                             <button className="btn-outline" onClick={() => setShowAddModal(false)}>Cancel</button>
-                            <button className="btn-primary" onClick={handleAddNode} disabled={saving}>
-                                {saving ? 'Saving...' : 'Create Node'}
+                            <button
+                                className="btn-outline"
+                                onClick={() => handleAddNode(false)}
+                                disabled={saving}
+                            >
+                                Save as Draft
+                            </button>
+                            <button
+                                className="btn-primary"
+                                onClick={() => handleAddNode(true)}
+                                disabled={saving}
+                            >
+                                {saving ? 'Saving...' : '✓ Publish Now'}
                             </button>
                         </div>
                     </div>
@@ -387,8 +402,8 @@ export default function KnowledgePage() {
                                     key={status}
                                     onClick={() => handleStatusChange(statusModal.id, status)}
                                     className={`w-full p-2 rounded text-left capitalize ${statusModal.current === status
-                                            ? 'bg-cisco-blue text-white'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        ? 'bg-cisco-blue text-white'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                         }`}
                                 >
                                     {status}

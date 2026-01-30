@@ -50,21 +50,40 @@ export async function generateChatCompletion(
         provider: 'groq',
         model: config.model || 'llama-3.1-8b-instant',
         temperature: config.temperature ?? 0.7,
-        maxTokens: config.maxTokens || 2048,
+        maxTokens: config.maxTokens || 4096,
     };
 
     const client = getGroqClient();
+
+    // Enhance system prompt to ensure JSON output
+    const jsonSystemPrompt = systemPrompt + '\n\nIMPORTANT: You MUST respond ONLY with valid JSON. No additional text before or after the JSON object.';
+
     const response = await client.chat.completions.create({
         model: finalConfig.model,
         temperature: finalConfig.temperature,
         max_tokens: finalConfig.maxTokens,
+        response_format: { type: 'json_object' },
         messages: [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: jsonSystemPrompt },
             { role: 'user', content: userPrompt },
         ],
     });
 
-    return response.choices[0]?.message?.content || '';
+    const content = response.choices[0]?.message?.content || '{}';
+
+    // Validate it's parseable JSON
+    try {
+        JSON.parse(content);
+        return content;
+    } catch (e) {
+        console.error('LLM returned invalid JSON:', content.substring(0, 200));
+        // Try to extract JSON from the response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return jsonMatch[0];
+        }
+        throw new Error('LLM did not return valid JSON');
+    }
 }
 
 export function estimateTokens(text: string): number {

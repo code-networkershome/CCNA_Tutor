@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, isAdmin } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { labs } from '@/lib/db/schema';
-import { eq, desc, and, isNull } from 'drizzle-orm';
+import { eq, desc, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 // GET - List all labs for admin
@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
         const allLabs = await db
             .select()
             .from(labs)
-            .where(isNull(labs.deletedAt))
             .orderBy(desc(labs.createdAt))
             .limit(100);
 
@@ -27,16 +26,17 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// Lab creation schema
+// Lab creation schema - matches the schema.ts labs table
 const createLabSchema = z.object({
     title: z.string().min(3),
     description: z.string().min(10),
     topic: z.string().min(1),
-    difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
+    difficulty: z.enum(['guided', 'standard', 'challenge']), // Matches labDifficultyEnum
     estimatedMinutes: z.number().min(5).max(180).default(30),
     objectives: z.array(z.string()).optional(),
-    initialConfig: z.string().optional(),
-    solutionConfig: z.string().optional(),
+    topology: z.object({}).passthrough().optional(),
+    initialConfigs: z.object({}).passthrough().optional(),
+    solutionConfigs: z.object({}).passthrough().optional(),
     hints: z.array(z.string()).optional(),
 });
 
@@ -59,8 +59,9 @@ export async function POST(request: NextRequest) {
             difficulty: validated.difficulty,
             estimatedMinutes: validated.estimatedMinutes,
             objectives: validated.objectives || [],
-            initialConfig: validated.initialConfig || '',
-            solutionConfig: validated.solutionConfig || '',
+            topology: validated.topology || {},
+            initialConfigs: validated.initialConfigs || {},
+            solutionConfigs: validated.solutionConfigs || {},
             hints: validated.hints || [],
             status: 'draft',
         }).returning();
@@ -103,7 +104,7 @@ export async function PUT(request: NextRequest) {
     }
 }
 
-// DELETE - Soft delete lab
+// DELETE - Hard delete lab (no deletedAt field in labs schema)
 export async function DELETE(request: NextRequest) {
     try {
         const user = await getCurrentUser();
@@ -118,10 +119,8 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Lab ID required' }, { status: 400 });
         }
 
-        await db
-            .update(labs)
-            .set({ deletedAt: new Date() })
-            .where(eq(labs.id, id));
+        // Hard delete since labs table doesn't have deletedAt column
+        await db.delete(labs).where(eq(labs.id, id));
 
         return NextResponse.json({ success: true });
     } catch (error) {

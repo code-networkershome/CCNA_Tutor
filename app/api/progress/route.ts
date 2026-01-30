@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { getUserProgress, getTopicProgressForUser, initializeUserProgress } from '@/lib/db/progress-queries';
 import { db } from '@/lib/db';
 import { quizAttempts, labAttempts, userProgress } from '@/lib/db/schema';
-import { eq, sql, desc } from 'drizzle-orm';
+import { eq, sql, desc, isNotNull } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
     try {
@@ -15,56 +15,55 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Get or initialize user progress
-        let progress = await getUserProgress(user.id);
-        if (!progress) {
-            progress = await initializeUserProgress(user.id);
-        }
+        // Run all queries in parallel for faster loading
+        const [progress, topicProgress, quizStats, recentQuizzes, labStats] = await Promise.all([
+            // Get or initialize user progress
+            getUserProgress(user.id).then(p => p || initializeUserProgress(user.id)),
 
-        // Get topic progress
-        const topicProgress = await getTopicProgressForUser(user.id);
+            // Get topic progress
+            getTopicProgressForUser(user.id),
 
-        // Get quiz stats
-        const [quizStats] = await db.select({
-            totalQuizzes: sql<number>`count(*)::int`,
-            avgScore: sql<number>`coalesce(avg(${quizAttempts.score}), 0)::float`,
-            totalXP: sql<number>`coalesce(sum(${quizAttempts.earnedXp}), 0)::int`,
-            passCount: sql<number>`count(*) filter (where ${quizAttempts.passed} = true)::int`,
-        }).from(quizAttempts).where(eq(quizAttempts.userId, user.id));
+            // Get quiz stats
+            db.select({
+                totalQuizzes: sql<number>`count(*)::int`,
+                avgScore: sql<number>`coalesce(avg(${quizAttempts.score}), 0)::float`,
+                passCount: sql<number>`count(*) filter (where ${quizAttempts.passed} = true)::int`,
+            }).from(quizAttempts).where(eq(quizAttempts.userId, user.id)).then(r => r[0]),
 
-        // Get recent quiz attempts
-        const recentQuizzes = await db.select({
-            id: quizAttempts.id,
-            score: quizAttempts.score,
-            passed: quizAttempts.passed,
-            completedAt: quizAttempts.completedAt,
-        })
-            .from(quizAttempts)
-            .where(eq(quizAttempts.userId, user.id))
-            .orderBy(desc(quizAttempts.completedAt))
-            .limit(5);
+            // Get recent quiz attempts
+            db.select({
+                id: quizAttempts.id,
+                score: quizAttempts.score,
+                passed: quizAttempts.passed,
+                completedAt: quizAttempts.completedAt,
+            })
+                .from(quizAttempts)
+                .where(eq(quizAttempts.userId, user.id))
+                .orderBy(desc(quizAttempts.completedAt))
+                .limit(5),
 
-        // Get lab stats
-        const [labStats] = await db.select({
-            totalLabs: sql<number>`count(*)::int`,
-            completedLabs: sql<number>`count(*) filter (where ${labAttempts.completed} = true)::int`,
-        }).from(labAttempts).where(eq(labAttempts.userId, user.id));
+            // Get lab stats
+            db.select({
+                totalLabs: sql<number>`count(*)::int`,
+                completedLabs: sql<number>`count(*) filter (where ${labAttempts.completedAt} is not null)::int`,
+            }).from(labAttempts).where(eq(labAttempts.userId, user.id)).then(r => r[0]),
+        ]);
 
-        // Calculate total XP (from progress + quiz XP)
-        const totalXP = (progress?.experiencePoints || 0) + (quizStats?.totalXP || 0);
+        // Calculate total XP from progress
+        const totalXP = progress?.experiencePoints || 0;
 
         // Calculate level based on XP (every 100 XP = 1 level)
         const calculatedLevel = Math.floor(totalXP / 100) + 1;
 
-        // Update user progress with latest XP if changed
-        if (progress && totalXP !== progress.experiencePoints) {
-            await db.update(userProgress)
+        // Update user progress level if needed (don't await, fire and forget)
+        if (progress && calculatedLevel !== progress.level) {
+            db.update(userProgress)
                 .set({
-                    experiencePoints: totalXP,
                     level: calculatedLevel,
                     lastActivityAt: new Date(),
                 })
-                .where(eq(userProgress.userId, user.id));
+                .where(eq(userProgress.userId, user.id))
+                .catch(console.error);
         }
 
         return NextResponse.json({

@@ -81,7 +81,9 @@ export default function ReviewQueuePage() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold">Review Queue</h1>
-                <p className="text-gray-600 dark:text-gray-400">Review and approve pending content</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                    Review and approve AI-generated content before publishing
+                </p>
             </div>
 
             {/* Stats */}

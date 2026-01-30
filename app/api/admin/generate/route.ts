@@ -139,7 +139,7 @@ async function processGenerationJob(
                 if (jsonMatch) {
                     const parsed = JSON.parse(jsonMatch[0]);
 
-                    // Insert knowledge node
+                    // Insert knowledge node - published directly (admin initiated)
                     await db.insert(knowledgeNodes).values({
                         topic: parsed.topic || topic,
                         intent: parsed.intent || `Learn about ${topic}`,
@@ -151,7 +151,9 @@ async function processGenerationJob(
                         commonMistakes: parsed.commonMistakes || [],
                         examNote: parsed.examNote || null,
                         prerequisites: parsed.prerequisites || [],
-                        status: 'draft',
+                        status: 'published',
+                        generatedBy: 'llm',
+                        publishedAt: new Date(),
                     });
                 }
 

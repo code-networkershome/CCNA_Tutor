@@ -31,19 +31,17 @@ export default function FlashcardsPage() {
     const [flipped, setFlipped] = useState(false);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
-    const [selectedTopic, setSelectedTopic] = useState<string>('');
     const [sessionStats, setSessionStats] = useState({ reviewed: 0, correct: 0 });
     const [showTopicSelector, setShowTopicSelector] = useState(false);
     const [sessionComplete, setSessionComplete] = useState(false);
     const router = useRouter();
 
-    const fetchCards = async (topic?: string) => {
+    const fetchCards = async () => {
         setLoading(true);
         setSessionComplete(false);
         setSessionStats({ reviewed: 0, correct: 0 });
         try {
-            const url = topic ? `/api/flashcards?topic=${encodeURIComponent(topic)}` : '/api/flashcards';
-            const response = await fetch(url);
+            const response = await fetch('/api/flashcards');
             const data = await response.json();
             if (data.success) {
                 setCards(data.data);
@@ -63,7 +61,6 @@ export default function FlashcardsPage() {
 
     const handleGenerateCards = async (topic: string) => {
         setGenerating(true);
-        setSelectedTopic(topic);
         setShowTopicSelector(false);
         setSessionComplete(false);
 
@@ -79,7 +76,6 @@ export default function FlashcardsPage() {
 
             const data = await response.json();
             if (data.success && data.data) {
-                // Replace cards with new generated ones for fresh session
                 setCards(data.data);
                 setCurrentIndex(0);
                 setFlipped(false);
@@ -101,7 +97,6 @@ export default function FlashcardsPage() {
             correct: sessionStats.correct + (isCorrect ? 1 : 0),
         };
         setSessionStats(newStats);
-
         setFlipped(false);
 
         // Send review to API
@@ -122,7 +117,6 @@ export default function FlashcardsPage() {
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(prev => prev + 1);
             } else {
-                // Session complete!
                 setSessionComplete(true);
             }
         }, 200);
@@ -158,7 +152,6 @@ export default function FlashcardsPage() {
                         Great job! You've reviewed all {cards.length} cards.
                     </p>
 
-                    {/* Stats */}
                     <div className="grid grid-cols-3 gap-4 mb-8">
                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                             <div className="text-2xl font-bold text-cisco-blue">{sessionStats.reviewed}</div>
@@ -174,29 +167,18 @@ export default function FlashcardsPage() {
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <button
-                            onClick={handleRestartSession}
-                            className="btn-outline"
-                        >
+                        <button onClick={handleRestartSession} className="btn-outline">
                             🔄 Review Again
                         </button>
-                        <button
-                            onClick={() => setShowTopicSelector(true)}
-                            className="btn-primary"
-                        >
+                        <button onClick={() => setShowTopicSelector(true)} className="btn-primary">
                             ✨ Generate New Cards
                         </button>
-                        <button
-                            onClick={() => router.push('/learn')}
-                            className="btn-outline"
-                        >
+                        <button onClick={() => router.push('/learn')} className="btn-outline">
                             ← Back to Dashboard
                         </button>
                     </div>
 
-                    {/* Topic Selector */}
                     {showTopicSelector && (
                         <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-left">
                             <h3 className="font-semibold mb-3">Select a topic:</h3>
@@ -287,10 +269,7 @@ export default function FlashcardsPage() {
                     <div className="text-5xl mb-4">🎴</div>
                     <h2 className="text-xl font-semibold mb-2">No flashcards yet</h2>
                     <p className="text-gray-500 mb-4">Generate AI-powered flashcards to start studying</p>
-                    <button
-                        onClick={() => setShowTopicSelector(true)}
-                        className="btn-primary"
-                    >
+                    <button onClick={() => setShowTopicSelector(true)} className="btn-primary">
                         Generate Flashcards
                     </button>
                 </div>
@@ -304,60 +283,74 @@ export default function FlashcardsPage() {
                         />
                     </div>
 
-                    {/* Flashcard */}
+                    {/* Flashcard - Click to flip */}
                     <div
-                        className="relative w-full aspect-video cursor-pointer"
-                        style={{ perspective: '1000px' }}
+                        className="relative w-full aspect-video cursor-pointer select-none"
                         onClick={() => setFlipped(!flipped)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setFlipped(!flipped);
+                            }
+                        }}
                     >
+                        {/* Front of card */}
                         <div
-                            className="relative w-full h-full transition-transform duration-500"
+                            className={`absolute inset-0 w-full h-full rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center transition-all duration-300 ease-in-out ${flipped
+                                    ? 'opacity-0 scale-95 pointer-events-none'
+                                    : 'opacity-100 scale-100'
+                                }`}
                             style={{
-                                transformStyle: 'preserve-3d',
-                                transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                                backgroundColor: '#e0f7fa',
+                                border: '2px solid #b2ebf2',
+                                zIndex: flipped ? 0 : 10
                             }}
                         >
-                            {/* Front */}
-                            <div
-                                className="absolute inset-0 w-full h-full rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700"
-                                style={{ backfaceVisibility: 'hidden' }}
-                            >
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="badge-secondary">{cards[currentIndex]?.topic}</span>
-                                    {cards[currentIndex]?.source === 'llm' && (
-                                        <span className="badge-primary text-xs">AI Generated</span>
-                                    )}
-                                </div>
-                                <p className="text-xl font-medium">{cards[currentIndex]?.front}</p>
-                                <p className="text-sm text-gray-400 mt-4">Click to flip</p>
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="px-2 py-1 bg-gray-200 text-gray-700 text-sm rounded-full">
+                                    {cards[currentIndex]?.topic}
+                                </span>
+                                {cards[currentIndex]?.source === 'llm' && (
+                                    <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full">AI Generated</span>
+                                )}
                             </div>
+                            <p className="text-xl font-medium text-gray-800">{cards[currentIndex]?.front}</p>
+                            <p className="text-sm text-gray-500 mt-6 animate-pulse">👆 Click to reveal answer</p>
+                        </div>
 
-                            {/* Back */}
-                            <div
-                                className="absolute inset-0 w-full h-full rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center bg-primary-50 dark:bg-primary-900/20 border-2 border-cisco-blue/20"
-                                style={{
-                                    backfaceVisibility: 'hidden',
-                                    transform: 'rotateY(180deg)'
-                                }}
-                            >
-                                <p className="text-lg">{cards[currentIndex]?.back}</p>
-                            </div>
+                        {/* Back of card */}
+                        <div
+                            className={`absolute inset-0 w-full h-full rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center transition-all duration-300 ease-in-out ${flipped
+                                    ? 'opacity-100 scale-100'
+                                    : 'opacity-0 scale-95 pointer-events-none'
+                                }`}
+                            style={{
+                                backgroundColor: '#e8f5e9',
+                                border: '2px solid #a5d6a7',
+                                zIndex: flipped ? 10 : 0
+                            }}
+                        >
+                            <div className="text-sm text-green-600 font-medium mb-2">✓ Answer</div>
+                            <p className="text-lg text-gray-800">{cards[currentIndex]?.back}</p>
+                            <p className="text-sm text-gray-500 mt-6">Rate your recall below 👇</p>
                         </div>
                     </div>
 
                     {/* Rating Buttons */}
                     {flipped && (
                         <div className="flex justify-center gap-3 animate-fade-in">
-                            <button onClick={() => handleRating('again')} className="btn-outline border-red-300 text-red-600 hover:bg-red-50 px-6">
+                            <button onClick={(e) => { e.stopPropagation(); handleRating('again'); }} className="btn-outline border-red-300 text-red-600 hover:bg-red-50 px-6">
                                 Again
                             </button>
-                            <button onClick={() => handleRating('hard')} className="btn-outline border-orange-300 text-orange-600 hover:bg-orange-50 px-6">
+                            <button onClick={(e) => { e.stopPropagation(); handleRating('hard'); }} className="btn-outline border-orange-300 text-orange-600 hover:bg-orange-50 px-6">
                                 Hard
                             </button>
-                            <button onClick={() => handleRating('good')} className="btn-outline border-green-300 text-green-600 hover:bg-green-50 px-6">
+                            <button onClick={(e) => { e.stopPropagation(); handleRating('good'); }} className="btn-outline border-green-300 text-green-600 hover:bg-green-50 px-6">
                                 Good
                             </button>
-                            <button onClick={() => handleRating('easy')} className="btn-outline border-cisco-blue text-cisco-blue hover:bg-blue-50 px-6">
+                            <button onClick={(e) => { e.stopPropagation(); handleRating('easy'); }} className="btn-outline border-cyan-500 text-cyan-600 hover:bg-cyan-50 px-6">
                                 Easy
                             </button>
                         </div>

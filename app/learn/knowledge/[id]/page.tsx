@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import ReactMarkdown from 'react-markdown';
 
 interface KnowledgeNode {
     id: string;
@@ -86,8 +85,8 @@ export default function KnowledgeDetail() {
                 </h1>
                 <div className="flex gap-4 text-sm">
                     <span className={`px-2 py-1 rounded-full ${node.difficulty === 'beginner' ? 'bg-green-100 text-green-700' :
-                            node.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
+                        node.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
                         }`}>
                         {node.difficulty.charAt(0).toUpperCase() + node.difficulty.slice(1)}
                     </span>
@@ -102,7 +101,7 @@ export default function KnowledgeDetail() {
                 <h2 className="flex items-center gap-2">
                     <span className="text-2xl">💡</span> Core Concept
                 </h2>
-                <ReactMarkdown>{node.coreExplanation}</ReactMarkdown>
+                <div className="whitespace-pre-wrap">{node.coreExplanation}</div>
             </div>
 
             {/* Mental Model */}
@@ -114,7 +113,7 @@ export default function KnowledgeDetail() {
             {/* Wire Logic */}
             <div className="prose dark:prose-invert max-w-none">
                 <h3>🔌 How It Works (Wire Logic)</h3>
-                <ReactMarkdown>{node.wireLogic}</ReactMarkdown>
+                <div className="whitespace-pre-wrap">{node.wireLogic}</div>
             </div>
 
             {/* CLI Example */}

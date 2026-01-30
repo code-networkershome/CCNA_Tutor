@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, isAdmin } from '@/lib/auth/session';
 import { db } from '@/lib/db';
-import { quizzes, quizQuestions } from '@/lib/db/schema';
+import { quizzes, questions, quizQuestions } from '@/lib/db/schema';
 import { eq, desc, and, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
                 title: quizzes.title,
                 description: quizzes.description,
                 topics: quizzes.topics,
-                difficulty: quizzes.difficulty,
                 questionCount: quizzes.questionCount,
                 timeLimit: quizzes.timeLimit,
                 passingScore: quizzes.passingScore,
@@ -44,24 +43,23 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// Quiz creation schema
+// Quiz creation schema - aligned with schema.ts
 const createQuizSchema = z.object({
     title: z.string().min(3),
     description: z.string().optional(),
     topics: z.array(z.string()).min(1),
-    difficulty: z.enum(['beginner', 'intermediate', 'advanced', 'mixed']),
     timeLimit: z.number().min(1).max(180).optional(),
     passingScore: z.number().min(1).max(100).default(70),
     shuffleQuestions: z.boolean().default(true),
     shuffleOptions: z.boolean().default(true),
     questions: z.array(z.object({
         questionText: z.string().min(5),
-        type: z.enum(['mcq', 'multi_select', 'drag_drop', 'fill_blank', 'scenario']).default('mcq'),
-        difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
-        options: z.array(z.string()).min(2),
-        correctAnswer: z.union([z.string(), z.array(z.string())]),
+        type: z.enum(['multiple_choice', 'multiple_select', 'drag_drop', 'fill_blank', 'hotspot', 'simulation']).default('multiple_choice'),
+        difficulty: z.enum(['beginner', 'intermediate', 'advanced']).default('intermediate'),
+        options: z.array(z.any()).min(2),
+        correctAnswer: z.any(),
         explanation: z.string().optional(),
-        points: z.number().default(10),
+        points: z.number().default(1),
     })).min(1),
 });
 
@@ -76,26 +74,29 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const validated = createQuizSchema.parse(body);
 
-        // Create quiz
+        // Create quiz (without difficulty - quizzes table doesn't have this field)
         const [newQuiz] = await db.insert(quizzes).values({
             module: 'ccna',
             title: validated.title,
             description: validated.description || '',
             topics: validated.topics,
-            difficulty: validated.difficulty,
             questionCount: validated.questions.length,
             timeLimit: validated.timeLimit || validated.questions.length * 2,
             passingScore: validated.passingScore,
             shuffleQuestions: validated.shuffleQuestions,
             shuffleOptions: validated.shuffleOptions,
             status: 'draft',
+            createdBy: user.id,
         }).returning();
 
-        // Create questions
+        // Create questions and link them to quiz
         for (let i = 0; i < validated.questions.length; i++) {
             const q = validated.questions[i];
-            await db.insert(quizQuestions).values({
-                quizId: newQuiz.id,
+
+            // First create the question in the questions table
+            const [newQuestion] = await db.insert(questions).values({
+                module: 'ccna',
+                topic: validated.topics[0] || 'General',
                 type: q.type,
                 difficulty: q.difficulty,
                 questionText: q.questionText,
@@ -103,7 +104,15 @@ export async function POST(request: NextRequest) {
                 correctAnswer: q.correctAnswer,
                 explanation: q.explanation || '',
                 points: q.points,
-                orderIndex: i,
+                status: 'published',
+                generatedBy: 'human',
+            }).returning();
+
+            // Then link it to the quiz via quizQuestions junction table
+            await db.insert(quizQuestions).values({
+                quizId: newQuiz.id,
+                questionId: newQuestion.id,
+                order: i,
             });
         }
 

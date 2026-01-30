@@ -1,4 +1,4 @@
-import { generateCompletion, estimateCost, LLMProvider } from './provider';
+import { generateCompletion, LLMProvider } from './provider';
 import { llmBatchResponseSchema, LLMKnowledgeNode } from './schemas';
 import { createKnowledgeNode, updateGenerationJob, saveKnowledgeVersion } from '@/lib/db/queries';
 import { createAuditLog } from '@/lib/db/queries';
@@ -161,12 +161,13 @@ Generate 3-5 nodes for this topic.`;
 
 export async function estimateJobCost(
     topics: string[],
-    model: string = 'gpt-4-turbo'
+    model: string = 'llama-3.1-8b-instant'
 ): Promise<{ estimatedCost: number; estimatedTokens: number }> {
     // Estimate ~2000 tokens per topic (input + output)
     const tokensPerTopic = 2000;
     const estimatedTokens = topics.length * tokensPerTopic;
-    const estimatedCost = estimateCost('openai', model, estimatedTokens);
+    // Groq is essentially free, so cost is minimal
+    const estimatedCost = estimatedTokens * 0.0001; // $0.0001 per 1K tokens estimate
 
     return { estimatedCost, estimatedTokens };
 }

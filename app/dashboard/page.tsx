@@ -124,13 +124,13 @@ export default function DashboardPage() {
             </div>
 
             {/* Generation Jobs */}
-            {stats?.generationJobs > 0 && (
+            {(stats?.generationJobs ?? 0) > 0 && (
                 <div className="card p-4 bg-blue-50 dark:bg-blue-900/20 border-cisco-blue/20">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="animate-spin h-5 w-5 border-2 border-cisco-blue border-t-transparent rounded-full" />
                             <div>
-                                <span className="font-medium">{stats.generationJobs} generation jobs running</span>
+                                <span className="font-medium">{stats?.generationJobs ?? 0} generation jobs running</span>
                             </div>
                         </div>
                         <Link href="/dashboard/generation" className="btn-primary btn-sm">

@@ -63,6 +63,7 @@ const createNodeSchema = z.object({
     commonMistakes: z.array(z.string()).optional(),
     examNote: z.string().optional(),
     estimatedMinutes: z.number().min(1).max(120).optional(),
+    publishImmediately: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -74,6 +75,9 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const validated = createNodeSchema.parse(body);
+
+        // Admin can publish directly without going through review
+        const status = validated.publishImmediately ? 'published' : 'draft';
 
         const [newNode] = await db.insert(knowledgeNodes).values({
             module: 'ccna',
@@ -88,8 +92,9 @@ export async function POST(request: NextRequest) {
             commonMistakes: validated.commonMistakes || [],
             examNote: validated.examNote || null,
             estimatedMinutes: validated.estimatedMinutes || 10,
-            status: 'draft',
+            status: status,
             generatedBy: 'human',
+            publishedAt: validated.publishImmediately ? new Date() : null,
         }).returning();
 
         return NextResponse.json({ success: true, data: newNode });

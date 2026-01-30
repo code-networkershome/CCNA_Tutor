@@ -36,10 +36,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { query, module, mode } = parsed.data;
+        const { query, module, mode, style, difficulty } = parsed.data;
 
-        // Get tutor response
-        const response = await answerQuery(query, module, mode);
+        // Get tutor response with style and difficulty options
+        const response = await answerQuery(query, module, mode, { style, difficulty });
 
         // Track activity
         await trackActivity(
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             'query',
             'tutor',
             undefined,
-            { query, module, mode, source: response.source },
+            { query, module, mode, style, difficulty, source: response.source },
             response.latency
         );
 

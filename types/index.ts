@@ -40,6 +40,7 @@ export interface TutorResponse {
     };
     commonMistakes: string[];
     examNote?: string;
+    followUpQuestions?: string[]; // For Socratic teaching mode
     mode: 'learn' | 'exam';
     source: 'cache' | 'database' | 'llm';
     latency: number;
@@ -429,6 +430,8 @@ export const querySchema = z.object({
     query: z.string().min(1).max(500),
     module: z.enum(['ccna', 'netsec', 'ccnp', 'aws']).default('ccna'),
     mode: z.enum(['learn', 'exam']).default('learn'),
+    style: z.enum(['direct', 'socratic']).default('direct'),
+    difficulty: z.enum(['eli5', 'beginner', 'intermediate', 'expert']).default('intermediate'),
 });
 
 export const knowledgeNodeSchema = z.object({

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, isAdmin } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { flashcards } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 const flashcardSchema = z.object({
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// PUT - Update flashcard status
+// PUT - Update flashcard(s) - supports single and bulk updates
 export async function PUT(request: NextRequest) {
     try {
         const user = await getCurrentUser();
@@ -87,13 +87,56 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
+
+        // Check if this is a bulk operation
+        if (body.bulkAction) {
+            const { bulkAction, ids } = body;
+
+            // Bulk update all cards
+            if (bulkAction === 'publishAll') {
+                await db.update(flashcards).set({ status: 'published' });
+                return NextResponse.json({ success: true, message: 'All flashcards published' });
+            }
+
+            if (bulkAction === 'unpublishAll') {
+                await db.update(flashcards).set({ status: 'draft' });
+                return NextResponse.json({ success: true, message: 'All flashcards unpublished' });
+            }
+
+            if (bulkAction === 'deleteAll') {
+                await db.delete(flashcards);
+                return NextResponse.json({ success: true, message: 'All flashcards deleted' });
+            }
+
+            // Bulk update selected cards
+            if (ids && Array.isArray(ids) && ids.length > 0) {
+                if (bulkAction === 'publishSelected') {
+                    await db.update(flashcards).set({ status: 'published' }).where(inArray(flashcards.id, ids));
+                    return NextResponse.json({ success: true, message: `${ids.length} flashcards published` });
+                }
+
+                if (bulkAction === 'unpublishSelected') {
+                    await db.update(flashcards).set({ status: 'draft' }).where(inArray(flashcards.id, ids));
+                    return NextResponse.json({ success: true, message: `${ids.length} flashcards unpublished` });
+                }
+
+                if (bulkAction === 'deleteSelected') {
+                    await db.delete(flashcards).where(inArray(flashcards.id, ids));
+                    return NextResponse.json({ success: true, message: `${ids.length} flashcards deleted` });
+                }
+            }
+
+            return NextResponse.json({ success: false, error: 'Invalid bulk action' }, { status: 400 });
+        }
+
+        // Single card update
         const { id, status, front, back, topic, difficulty } = body;
 
         if (!id) {
             return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
         }
 
-        const updateData: any = {};
+        const updateData: Record<string, string> = {};
         if (status) updateData.status = status;
         if (front) updateData.front = front;
         if (back) updateData.back = back;

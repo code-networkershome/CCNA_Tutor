@@ -7,6 +7,7 @@ import type { SessionUser } from '@/types';
 
 const navItems = [
     { href: '/learn', icon: '📚', label: 'Learn' },
+    { href: '/learn/topics', icon: '📖', label: 'Topics' },
     { href: '/learn/tutor', icon: '🤖', label: 'AI Tutor' },
     { href: '/learn/quiz', icon: '⚡', label: 'Quizzes' },
     { href: '/learn/flashcards', icon: '🎴', label: 'Flashcards' },
@@ -104,8 +105,8 @@ export default function LearnLayout({ children }: { children: ReactNode }) {
                                     href={item.href}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                            ? 'bg-cisco-blue text-white'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        ? 'bg-cisco-blue text-white'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                         }`}
                                 >
                                     <span className="text-xl">{item.icon}</span>

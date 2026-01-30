@@ -42,10 +42,18 @@ const ccnaTopics = [
     'Automation & Programmability',
 ];
 
+// Initialize with defaults so page shows immediately
+const defaultStats: ProgressStats = {
+    currentStreak: 0,
+    totalTimeSpent: 0,
+    level: 1,
+    experiencePoints: 0,
+    topicsCompleted: 0,
+};
+
 export default function LearnHomePage() {
-    const [stats, setStats] = useState<ProgressStats | null>(null);
-    const [topicProgress, setTopicProgress] = useState<TopicProgress[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<ProgressStats>(defaultStats);
+    const [loading, setLoading] = useState(false); // Start false so content shows immediately
 
     useEffect(() => {
         const fetchProgress = async () => {
@@ -65,41 +73,9 @@ export default function LearnHomePage() {
                         labStats: data.data.labStats,
                         recentQuizzes: data.data.recentQuizzes,
                     });
-
-                    // Map topic progress from API or use defaults
-                    const topics = data.data.topics || [];
-                    const mappedTopics = ccnaTopics.map(topic => {
-                        const found = topics.find((t: any) => t.topic === topic);
-                        return {
-                            topic,
-                            progress: found?.masteryLevel || 0,
-                        };
-                    });
-                    setTopicProgress(mappedTopics);
-                } else {
-                    // Set defaults if API fails
-                    setStats({
-                        currentStreak: 0,
-                        totalTimeSpent: 0,
-                        level: 1,
-                        experiencePoints: 0,
-                        topicsCompleted: 0,
-                    });
-                    setTopicProgress(ccnaTopics.map(topic => ({ topic, progress: 0 })));
                 }
             } catch (error) {
                 console.error('Failed to fetch progress:', error);
-                // Set defaults on error
-                setStats({
-                    currentStreak: 0,
-                    totalTimeSpent: 0,
-                    level: 1,
-                    experiencePoints: 0,
-                    topicsCompleted: 0,
-                });
-                setTopicProgress(ccnaTopics.map(topic => ({ topic, progress: 0 })));
-            } finally {
-                setLoading(false);
             }
         };
 
@@ -111,7 +87,7 @@ export default function LearnHomePage() {
             href: '/learn/tutor',
             icon: '🤖',
             title: 'Ask AI Tutor',
-            description: 'Get instant answers to networking questions',
+            description: 'Get instant answers with Voice & Socratic modes',
             color: 'bg-blue-500',
         },
         {
@@ -124,16 +100,44 @@ export default function LearnHomePage() {
         {
             href: '/learn/flashcards',
             icon: '🎴',
-            title: 'Review Flashcards',
-            description: 'Master concepts with spaced repetition',
+            title: 'Smart Flashcards',
+            description: 'Spaced repetition for optimal learning',
             color: 'bg-purple-500',
+        },
+        {
+            href: '/learn/scenarios',
+            icon: '🔧',
+            title: 'Troubleshooting',
+            description: 'Interactive network problem solving',
+            color: 'bg-red-500',
+        },
+        {
+            href: '/learn/study-session',
+            icon: '🍅',
+            title: 'Study Session',
+            description: 'Pomodoro timer for focused learning',
+            color: 'bg-orange-500',
+        },
+        {
+            href: '/learn/achievements',
+            icon: '🏆',
+            title: 'Achievements',
+            description: 'Track your learning milestones',
+            color: 'bg-yellow-500',
         },
         {
             href: '/learn/labs',
             icon: '💻',
             title: 'Practice Labs',
             description: 'Hands-on CLI and topology exercises',
-            color: 'bg-orange-500',
+            color: 'bg-cyan-500',
+        },
+        {
+            href: '/learn/exam',
+            icon: '📝',
+            title: 'Practice Exams',
+            description: 'Full-length CCNA practice tests',
+            color: 'bg-indigo-500',
         },
     ];
 
@@ -146,32 +150,24 @@ export default function LearnHomePage() {
                     Ready to continue your CCNA journey? You&apos;re doing great!
                 </p>
 
-                {loading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[...Array(4)].map((_, i) => (
-                            <div key={i} className="bg-white/10 rounded-lg p-4 animate-pulse h-20" />
-                        ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white/10 rounded-lg p-4">
+                        <div className="text-3xl font-bold">{stats.currentStreak}🔥</div>
+                        <div className="text-sm text-white/70">Day Streak</div>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white/10 rounded-lg p-4">
-                            <div className="text-3xl font-bold">{stats?.currentStreak || 0}🔥</div>
-                            <div className="text-sm text-white/70">Day Streak</div>
-                        </div>
-                        <div className="bg-white/10 rounded-lg p-4">
-                            <div className="text-3xl font-bold">Lvl {stats?.level || 1}</div>
-                            <div className="text-sm text-white/70">{stats?.experiencePoints || 0} XP</div>
-                        </div>
-                        <div className="bg-white/10 rounded-lg p-4">
-                            <div className="text-3xl font-bold">{stats?.quizStats?.totalTaken || 0}</div>
-                            <div className="text-sm text-white/70">Quizzes Taken</div>
-                        </div>
-                        <div className="bg-white/10 rounded-lg p-4">
-                            <div className="text-3xl font-bold">{stats?.quizStats?.avgScore || 0}%</div>
-                            <div className="text-sm text-white/70">Avg Score</div>
-                        </div>
+                    <div className="bg-white/10 rounded-lg p-4">
+                        <div className="text-3xl font-bold">Lvl {stats.level}</div>
+                        <div className="text-sm text-white/70">{stats.experiencePoints} XP</div>
                     </div>
-                )}
+                    <div className="bg-white/10 rounded-lg p-4">
+                        <div className="text-3xl font-bold">{stats.quizStats?.totalTaken || 0}</div>
+                        <div className="text-sm text-white/70">Quizzes Taken</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4">
+                        <div className="text-3xl font-bold">{stats.quizStats?.avgScore || 0}%</div>
+                        <div className="text-sm text-white/70">Avg Score</div>
+                    </div>
+                </div>
             </div>
 
             {/* Quick Actions */}
@@ -260,31 +256,6 @@ export default function LearnHomePage() {
                     </div>
                 </div>
             )}
-
-            {/* Topic Progress */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">CCNA Topics</h2>
-                    <Link href="/learn/progress" className="text-cisco-blue hover:underline text-sm">
-                        View All Progress →
-                    </Link>
-                </div>
-                <div className="card divide-y dark:divide-gray-700">
-                    {topicProgress.map((topic) => (
-                        <div key={topic.topic} className="p-4 flex items-center gap-4">
-                            <div className="flex-1">
-                                <h3 className="font-medium mb-1">{topic.topic}</h3>
-                                <div className="progress-bar">
-                                    <div className="progress-bar-fill" style={{ width: `${topic.progress}%` }} />
-                                </div>
-                            </div>
-                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400 w-12 text-right">
-                                {topic.progress}%
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
 
             {/* Continue Learning */}
             <div className="card p-6 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-cisco-blue/20">

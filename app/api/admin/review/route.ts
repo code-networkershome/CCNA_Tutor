@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, isAdmin } from '@/lib/auth/session';
 import { db } from '@/lib/db';
 import { knowledgeNodes, labs, questions } from '@/lib/db/schema';
-import { eq, desc, or } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
-// GET - Fetch items pending review (draft status)
+// GET - Fetch AI-generated items pending review (draft status, LLM-generated only)
 export async function GET(request: NextRequest) {
     try {
         const user = await getCurrentUser();
@@ -12,17 +12,22 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
         }
 
-        // Fetch draft knowledge nodes
+        // Fetch draft knowledge nodes that are LLM-generated (not admin-created)
         const draftNodes = await db
             .select({
                 id: knowledgeNodes.id,
                 title: knowledgeNodes.topic,
+                intent: knowledgeNodes.intent,
                 type: knowledgeNodes.module,
                 status: knowledgeNodes.status,
+                generatedBy: knowledgeNodes.generatedBy,
                 createdAt: knowledgeNodes.createdAt,
             })
             .from(knowledgeNodes)
-            .where(eq(knowledgeNodes.status, 'draft'))
+            .where(and(
+                eq(knowledgeNodes.status, 'draft'),
+                eq(knowledgeNodes.generatedBy, 'llm')
+            ))
             .orderBy(desc(knowledgeNodes.createdAt))
             .limit(50);
 
@@ -44,11 +49,11 @@ export async function GET(request: NextRequest) {
         const reviewItems = [
             ...draftNodes.map(n => ({
                 id: n.id,
-                title: n.title,
+                title: n.intent || n.title,
                 type: 'knowledge' as const,
                 status: 'pending' as const,
                 submittedAt: n.createdAt?.toISOString() || new Date().toISOString(),
-                submittedBy: 'Admin',
+                submittedBy: 'AI (LLM)',
             })),
             ...draftLabs.map(l => ({
                 id: l.id,

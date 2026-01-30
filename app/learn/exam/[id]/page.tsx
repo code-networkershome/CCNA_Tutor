@@ -30,18 +30,44 @@ export default function ExamPage() {
     const [attemptId, setAttemptId] = useState('');
     const [generatingStatus, setGeneratingStatus] = useState('');
 
-    // Exam configuration based on ID
-    const examConfigs: Record<string, { title: string; questions: number; timeLimit: number }> = {
-        'ccna-full': { title: 'Full CCNA Practice Exam', questions: 20, timeLimit: 40 },
-        'ccna-network': { title: 'Network Fundamentals Exam', questions: 10, timeLimit: 20 },
-        'ccna-routing': { title: 'IP Connectivity & Routing Exam', questions: 10, timeLimit: 20 },
-        'ccna-security': { title: 'Security Fundamentals Exam', questions: 10, timeLimit: 20 },
+    // Exam configuration based on ID - MUST match the exam list page
+    const examConfigs: Record<string, {
+        title: string;
+        questions: number;
+        timeLimit: number;
+        topics: string[];
+    }> = {
+        'ccna-full': {
+            title: 'Full CCNA Practice Exam',
+            questions: 100,
+            timeLimit: 120,
+            topics: ['OSPF', 'VLANs', 'ACLs', 'NAT', 'Subnetting', 'STP', 'IPv4', 'IPv6', 'DHCP', 'Security']
+        },
+        'ccna-network': {
+            title: 'Network Fundamentals Exam',
+            questions: 25,
+            timeLimit: 30,
+            topics: ['OSI', 'TCP/IP', 'IPv4', 'Subnetting', 'Network Fundamentals']
+        },
+        'ccna-routing': {
+            title: 'IP Connectivity & Routing Exam',
+            questions: 25,
+            timeLimit: 30,
+            topics: ['OSPF', 'Static Routing', 'VLAN', '802.1Q', 'STP', 'EtherChannel']
+        },
+        'ccna-security': {
+            title: 'Security Fundamentals Exam',
+            questions: 20,
+            timeLimit: 25,
+            topics: ['ACL', 'Port Security', 'AAA', 'VPN', 'Security']
+        },
     };
 
     const examConfig = examConfigs[params.id as string] || {
         title: 'Practice Exam',
-        questions: 10,
-        timeLimit: 20
+        questions: 25,
+        timeLimit: 30,
+        topics: ['Networking']
     };
 
     const startExam = async () => {
@@ -80,12 +106,13 @@ export default function ExamPage() {
             }
 
             // No admin quizzes available, generate with LLM
-            setGeneratingStatus('Generating AI-powered questions...');
+            setGeneratingStatus(`Generating ${examConfig.questions} AI-powered questions...`);
             const genRes = await fetch('/api/quiz/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     examType: params.id,
+                    topics: examConfig.topics,
                     questionCount: examConfig.questions
                 }),
             });
@@ -354,8 +381,8 @@ export default function ExamPage() {
                                 key={i}
                                 onClick={() => handleAnswer(currentQuestion.id, option)}
                                 className={`w-full p-4 text-left rounded-lg border transition-all ${isSelected
-                                        ? 'border-cisco-blue bg-cisco-blue/10'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-cisco-blue/50'
+                                    ? 'border-cisco-blue bg-cisco-blue/10'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-cisco-blue/50'
                                     }`}
                             >
                                 <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
