@@ -57,13 +57,7 @@ export default function AnalyticsPage() {
                             time: 'Today',
                         });
                     }
-                    if (data.data.publishedNodes > 0) {
-                        activities.push({
-                            type: 'content',
-                            description: `${data.data.publishedNodes} knowledge nodes published`,
-                            time: 'Total',
-                        });
-                    }
+
                     setRecentActivity(activities);
                 }
             } catch (error) {
@@ -117,94 +111,59 @@ export default function AnalyticsPage() {
                 ))}
             </div>
 
-            {/* Content Stats */}
-            <div className="grid lg:grid-cols-2 gap-6">
-                <div className="card p-6">
-                    <h2 className="text-lg font-semibold mb-4">Content Overview</h2>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Knowledge Nodes</span>
-                            <span className="font-bold">{stats.totalNodes}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Published</span>
-                            <span className="font-bold text-green-600">{stats.publishedNodes}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Labs Created</span>
-                            <span className="font-bold">{stats.totalLabs}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Quiz Questions</span>
-                            <span className="font-bold">{stats.totalQuizzes}</span>
-                        </div>
 
-                        <div className="pt-4 border-t dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-gray-500">Content Readiness</span>
-                                <span className="text-sm font-medium">{contentReadiness}%</span>
-                            </div>
-                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-cisco-blue to-green-500 transition-all"
-                                    style={{ width: `${contentReadiness}%` }}
-                                />
-                            </div>
-                        </div>
+
+            <div className="card p-6">
+                <h2 className="text-lg font-semibold mb-4">User Engagement</h2>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Total Quiz Attempts</span>
+                        <span className="font-bold">{stats.quizzesTaken}</span>
                     </div>
-                </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Average Score</span>
+                        <span className={`font-bold ${stats.avgScore >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {stats.avgScore}%
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Active Users Today</span>
+                        <span className="font-bold">{stats.activeToday}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Engagement Rate</span>
+                        <span className="font-bold">
+                            {stats.activeUsers > 0
+                                ? Math.round((stats.activeToday / stats.activeUsers) * 100)
+                                : 0}%
+                        </span>
+                    </div>
 
-                <div className="card p-6">
-                    <h2 className="text-lg font-semibold mb-4">User Engagement</h2>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Total Quiz Attempts</span>
-                            <span className="font-bold">{stats.quizzesTaken}</span>
+                    <div className="pt-4 border-t dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-500">Score Distribution</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Average Score</span>
-                            <span className={`font-bold ${stats.avgScore >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
-                                {stats.avgScore}%
-                            </span>
+                        <div className="flex gap-1 h-8">
+                            {/* Visual representation of score */}
+                            {[...Array(10)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={`flex-1 rounded ${(i + 1) * 10 <= stats.avgScore
+                                        ? 'bg-cisco-blue'
+                                        : 'bg-gray-200 dark:bg-gray-700'
+                                        }`}
+                                />
+                            ))}
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Active Users Today</span>
-                            <span className="font-bold">{stats.activeToday}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Engagement Rate</span>
-                            <span className="font-bold">
-                                {stats.activeUsers > 0
-                                    ? Math.round((stats.activeToday / stats.activeUsers) * 100)
-                                    : 0}%
-                            </span>
-                        </div>
-
-                        <div className="pt-4 border-t dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-gray-500">Score Distribution</span>
-                            </div>
-                            <div className="flex gap-1 h-8">
-                                {/* Visual representation of score */}
-                                {[...Array(10)].map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className={`flex-1 rounded ${(i + 1) * 10 <= stats.avgScore
-                                                ? 'bg-cisco-blue'
-                                                : 'bg-gray-200 dark:bg-gray-700'
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>0%</span>
-                                <span>50%</span>
-                                <span>100%</span>
-                            </div>
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             {/* Recent Activity */}
             <div className="card p-6">
@@ -214,8 +173,8 @@ export default function AnalyticsPage() {
                         {recentActivity.map((activity, i) => (
                             <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${activity.type === 'quiz' ? 'bg-orange-100 text-orange-600' :
-                                        activity.type === 'user' ? 'bg-blue-100 text-blue-600' :
-                                            'bg-green-100 text-green-600'
+                                    activity.type === 'user' ? 'bg-blue-100 text-blue-600' :
+                                        'bg-green-100 text-green-600'
                                     }`}>
                                     {activity.type === 'quiz' ? '⚡' : activity.type === 'user' ? '👤' : '📚'}
                                 </div>
@@ -232,6 +191,6 @@ export default function AnalyticsPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
