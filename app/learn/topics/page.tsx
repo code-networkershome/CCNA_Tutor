@@ -15,9 +15,12 @@ const CCNA_CURRICULUM = [
         subtopics: [
             { id: 'osi-model', name: 'OSI Model Layers', difficulty: 'beginner', minutes: 15 },
             { id: 'tcp-ip-model', name: 'TCP/IP Model', difficulty: 'beginner', minutes: 12 },
+            { id: 'binary-hex-conversion', name: 'Binary & Hexadecimal Conversion', difficulty: 'beginner', minutes: 15 },
+            { id: 'network-devices', name: 'Network Device Components', difficulty: 'beginner', minutes: 12 },
             { id: 'ipv4-addressing', name: 'IPv4 Addressing', difficulty: 'beginner', minutes: 20 },
             { id: 'ipv6-addressing', name: 'IPv6 Addressing', difficulty: 'intermediate', minutes: 25 },
-            { id: 'subnetting', name: 'Subnetting Basics', difficulty: 'intermediate', minutes: 30 },
+            { id: 'classful-classless', name: 'Classful vs Classless Addressing', difficulty: 'beginner', minutes: 15 },
+            { id: 'subnetting', name: 'Subnetting Basics (FLSM)', difficulty: 'intermediate', minutes: 30 },
             { id: 'vlsm-cidr', name: 'VLSM & CIDR', difficulty: 'intermediate', minutes: 25 },
             { id: 'network-cables', name: 'Network Cables & Connectors', difficulty: 'beginner', minutes: 10 },
             { id: 'network-topologies', name: 'Network Topologies', difficulty: 'beginner', minutes: 12 },
@@ -52,12 +55,16 @@ const CCNA_CURRICULUM = [
         color: 'bg-purple-500',
         subtopics: [
             { id: 'routing-fundamentals', name: 'Routing Fundamentals', difficulty: 'beginner', minutes: 15 },
+            { id: 'routing-table', name: 'Routing Table & Path Selection', difficulty: 'beginner', minutes: 12 },
             { id: 'static-routing', name: 'Static Routing', difficulty: 'beginner', minutes: 18 },
             { id: 'default-floating-routes', name: 'Default & Floating Routes', difficulty: 'intermediate', minutes: 15 },
+            { id: 'inter-vlan-routing', name: 'Inter-VLAN Routing (Router-on-a-Stick)', difficulty: 'intermediate', minutes: 22 },
+            { id: 'layer3-switching', name: 'Layer 3 Switching & SVIs', difficulty: 'intermediate', minutes: 18 },
             { id: 'ospf-single-area', name: 'OSPF Single Area', difficulty: 'intermediate', minutes: 30 },
             { id: 'ospf-multi-area', name: 'OSPF Multi-Area', difficulty: 'advanced', minutes: 25 },
+            { id: 'ospf-neighbor-states', name: 'OSPF Neighbor States & DR/BDR', difficulty: 'advanced', minutes: 20 },
             { id: 'administrative-distance', name: 'Administrative Distance', difficulty: 'intermediate', minutes: 12 },
-            { id: 'hsrp-fhrp', name: 'First Hop Redundancy (HSRP)', difficulty: 'intermediate', minutes: 20 },
+            { id: 'hsrp-fhrp', name: 'First Hop Redundancy (HSRP/VRRP)', difficulty: 'intermediate', minutes: 20 },
             { id: 'ipv6-routing', name: 'IPv6 Routing', difficulty: 'intermediate', minutes: 22 },
         ],
     },
@@ -70,9 +77,12 @@ const CCNA_CURRICULUM = [
         color: 'bg-orange-500',
         subtopics: [
             { id: 'dhcp-config', name: 'DHCP Configuration', difficulty: 'beginner', minutes: 18 },
+            { id: 'dhcp-relay', name: 'DHCP Relay Agent (ip helper-address)', difficulty: 'intermediate', minutes: 15 },
             { id: 'dns-basics', name: 'DNS Basics', difficulty: 'beginner', minutes: 12 },
             { id: 'nat-types', name: 'NAT (Static, Dynamic, PAT)', difficulty: 'intermediate', minutes: 25 },
             { id: 'ntp-config', name: 'NTP Configuration', difficulty: 'beginner', minutes: 10 },
+            { id: 'cdp-lldp', name: 'CDP & LLDP Discovery Protocols', difficulty: 'beginner', minutes: 12 },
+            { id: 'tftp-ftp', name: 'TFTP/FTP for IOS Management', difficulty: 'intermediate', minutes: 15 },
             { id: 'snmp-syslog', name: 'SNMP & Syslog', difficulty: 'intermediate', minutes: 18 },
             { id: 'qos-concepts', name: 'QoS Concepts', difficulty: 'intermediate', minutes: 15 },
             { id: 'ssh-config', name: 'SSH Configuration', difficulty: 'beginner', minutes: 12 },
@@ -86,12 +96,16 @@ const CCNA_CURRICULUM = [
         description: 'Implement network security using ACLs, VPNs, and device hardening',
         color: 'bg-red-500',
         subtopics: [
+            { id: 'security-concepts', name: 'Security Concepts & Threats', difficulty: 'beginner', minutes: 15 },
+            { id: 'device-access-control', name: 'Device Access Control (Console/VTY)', difficulty: 'beginner', minutes: 12 },
+            { id: 'password-recovery', name: 'Password Recovery Procedures', difficulty: 'intermediate', minutes: 15 },
             { id: 'standard-acls', name: 'Standard ACLs', difficulty: 'beginner', minutes: 18 },
             { id: 'extended-acls', name: 'Extended ACLs', difficulty: 'intermediate', minutes: 22 },
             { id: 'port-security', name: 'Port Security', difficulty: 'intermediate', minutes: 15 },
             { id: 'dhcp-snooping', name: 'DHCP Snooping', difficulty: 'intermediate', minutes: 15 },
+            { id: 'dai', name: 'Dynamic ARP Inspection (DAI)', difficulty: 'intermediate', minutes: 15 },
             { id: 'aaa-concepts', name: 'AAA Concepts', difficulty: 'intermediate', minutes: 18 },
-            { id: 'vpn-types', name: 'VPN Types', difficulty: 'intermediate', minutes: 15 },
+            { id: 'vpn-types', name: 'VPN Types (Site-to-Site, Remote Access)', difficulty: 'intermediate', minutes: 15 },
             { id: 'wireless-security', name: 'Wireless Security (WPA2/WPA3)', difficulty: 'intermediate', minutes: 15 },
             { id: 'firewall-concepts', name: 'Firewall Concepts', difficulty: 'beginner', minutes: 12 },
         ],
@@ -185,8 +199,8 @@ export default function TopicsPage() {
                                         >
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className={`text-xs px-2 py-1 rounded-full ${topic.difficulty === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                        topic.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                    topic.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                                     }`}>
                                                     {topic.difficulty}
                                                 </span>
