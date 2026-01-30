@@ -42,19 +42,19 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 }
 
 export function isAdmin(role: string): boolean {
-    return ['content_admin', 'super_admin', 'faculty_reviewer'].includes(role);
+    return ['content_admin', 'super_admin', 'admin', 'faculty_reviewer'].includes(role);
 }
 
 export function canReview(role: string): boolean {
-    return ['content_admin', 'super_admin', 'faculty_reviewer'].includes(role);
+    return ['content_admin', 'super_admin', 'admin', 'faculty_reviewer'].includes(role);
 }
 
 export function canPublish(role: string): boolean {
-    return ['content_admin', 'super_admin'].includes(role);
+    return ['content_admin', 'super_admin', 'admin'].includes(role);
 }
 
 export function canManageUsers(role: string): boolean {
-    return role === 'super_admin';
+    return role === 'super_admin' || role === 'admin';
 }
 
 export function isAdminEmail(email: string): boolean {

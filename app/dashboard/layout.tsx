@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 const response = await fetch('/api/auth/session');
                 const data = await response.json();
                 if (data.success) {
-                    const adminRoles = ['content_admin', 'super_admin', 'faculty_reviewer'];
+                    const adminRoles = ['content_admin', 'super_admin', 'admin', 'faculty_reviewer'];
                     if (!adminRoles.includes(data.data.role)) {
                         router.push('/learn');
                         return;

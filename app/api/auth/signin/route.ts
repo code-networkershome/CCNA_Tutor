@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
             });
 
             // Redirect based on DB role
-            const isAdmin = ['super_admin', 'content_admin'].includes(userRole);
+            const isAdmin = ['super_admin', 'admin', 'content_admin'].includes(userRole);
             const redirectUrl = isAdmin ? '/dashboard' : '/learn';
 
             console.log(`[signin] Success! Role: ${userRole}. Redirecting to ${redirectUrl}`);
