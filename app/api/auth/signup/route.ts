@@ -8,16 +8,29 @@ const NEON_AUTH_URL = process.env.NEON_AUTH_BASE_URL || 'https://ep-wandering-hi
 
 export async function POST(request: NextRequest) {
     try {
-        // Dynamically detect the base URL - prioritize env var if set
-        const protocol = request.headers.get('x-forwarded-proto') || 'https';
-        const host = request.headers.get('host');
-        const originHeader = request.headers.get('origin');
-        const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+        // Automatically detect the base URL using Vercel's auto-provided env vars
+        const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+        const vercelUrl = process.env.VERCEL_URL;
+        const manualUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-        // Priority: 1. Env var, 2. Origin header, 3. Constructed from host
-        const APP_URL = envUrl || originHeader || `${protocol}://${host}`;
+        let APP_URL: string;
+        if (manualUrl) {
+            // Manual override takes highest priority
+            APP_URL = manualUrl;
+        } else if (vercelProductionUrl) {
+            // Vercel production deployment (auto-set by Vercel)
+            APP_URL = `https://${vercelProductionUrl}`;
+        } else if (vercelUrl) {
+            // Vercel preview deployment
+            APP_URL = `https://${vercelUrl}`;
+        } else {
+            // Local development - use headers
+            const protocol = request.headers.get('x-forwarded-proto') || 'http';
+            const host = request.headers.get('host') || 'localhost:3000';
+            APP_URL = `${protocol}://${host}`;
+        }
 
-        console.log(`[signup] URL Detection - envUrl: ${envUrl}, origin: ${originHeader}, host: ${host}, final: ${APP_URL}`);
+        console.log(`[signup] Detected APP_URL: ${APP_URL}`);
 
         const body = await request.json();
         const { email, password, name } = body;
