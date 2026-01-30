@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
                     email,
                     password,
                     name: name || email.split('@')[0],
-                    callbackURL: `${APP_URL}/learn`,
+                    // Note: Removed callbackURL - we handle redirects ourselves after auth
                 }),
                 signal: controller.signal,
             });

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({
                     email,
                     password,
-                    callbackURL: `${APP_URL}/learn`,
+                    // Note: Removed callbackURL - we handle redirects ourselves after auth
                 }),
                 signal: controller.signal,
             });
