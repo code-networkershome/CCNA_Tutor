@@ -226,17 +226,51 @@ export async function POST(request: NextRequest) {
         allQuestions = allQuestions.slice(0, questionCount);
 
         // Transform to our format
-        const formattedQuestions = allQuestions.map((q: any, i: number) => ({
-            id: `llm-${Date.now()}-${i}`,
-            type: 'mcq',
-            questionText: q.questionText,
-            options: q.options,
-            correctAnswer: q.options?.[q.correctAnswer?.charCodeAt(0) - 65] || q.options?.[0] || 'A',
-            explanation: q.explanation || '',
-            topic: q.topic || selectedTopics[i % selectedTopics.length],
-            difficulty: q.difficulty || 'medium',
-            points: 10,
-        }));
+        const formattedQuestions = allQuestions.map((q: any, i: number) => {
+            // Handle correctAnswer - could be a letter (A, B, C, D) or the actual option text
+            let correctAnswerText = '';
+
+            if (q.correctAnswer && q.options && Array.isArray(q.options)) {
+                const answer = q.correctAnswer.toString().trim();
+
+                // Check if it's a single letter A-D
+                if (answer.length === 1 && /^[A-Da-d]$/.test(answer)) {
+                    const index = answer.toUpperCase().charCodeAt(0) - 65;
+                    if (index >= 0 && index < q.options.length) {
+                        correctAnswerText = q.options[index];
+                    }
+                }
+
+                // If not found by letter, check if the answer matches one of the options directly
+                if (!correctAnswerText) {
+                    const matchingOption = q.options.find((opt: string) =>
+                        opt.toLowerCase().trim() === answer.toLowerCase() ||
+                        opt.toLowerCase().includes(answer.toLowerCase())
+                    );
+                    if (matchingOption) {
+                        correctAnswerText = matchingOption;
+                    }
+                }
+
+                // Fallback: use the first option if nothing matches
+                if (!correctAnswerText && q.options.length > 0) {
+                    correctAnswerText = q.options[0];
+                    console.warn(`Question ${i}: Could not map correctAnswer "${q.correctAnswer}", using first option`);
+                }
+            }
+
+            return {
+                id: `llm-${Date.now()}-${i}`,
+                type: 'mcq',
+                questionText: q.questionText,
+                options: q.options,
+                correctAnswer: correctAnswerText,
+                explanation: q.explanation || '',
+                topic: q.topic || selectedTopics[i % selectedTopics.length],
+                difficulty: q.difficulty || 'medium',
+                points: 10,
+            };
+        });
 
         return NextResponse.json({
             success: true,
