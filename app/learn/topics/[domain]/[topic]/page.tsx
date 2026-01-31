@@ -230,8 +230,8 @@ export default function TopicDetailPage() {
                 <h1 className="text-3xl font-bold mb-4">{topicDef.name}</h1>
                 <div className="flex gap-4 text-sm">
                     <span className={`px-3 py-1 rounded-full ${content.difficulty === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            content.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        content.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                         {content.difficulty}
                     </span>
@@ -302,8 +302,8 @@ export default function TopicDetailPage() {
 
             {/* Navigation */}
             <div className="flex justify-between pt-8 border-t dark:border-gray-700">
-                <Link href={`/learn/topics/${domain}`} className="btn-outline">
-                    ← Back to {topicDef.domainName}
+                <Link href="/learn/topics" className="btn-outline">
+                    ← Back to Curriculum
                 </Link>
                 <Link href="/learn/tutor" className="btn-primary">
                     Ask AI Tutor About This →

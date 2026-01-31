@@ -178,8 +178,8 @@ export default function DomainPage() {
     return (
         <div className="space-y-10 max-w-7xl mx-auto pb-20">
             {/* Back Nav */}
-            <Link href="/learn/topics" className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-cisco-blue transition-colors text-sm font-bold uppercase tracking-widest group">
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Overview
+            <Link href="/learn/topics" className="btn-outline self-start text-xs">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Overview
             </Link>
 
             {/* Premium Header */}
@@ -251,8 +251,8 @@ export default function DomainPage() {
                                             </h4>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${topic.difficulty === 'advanced' ? 'text-rose-500 bg-rose-500/10' :
-                                                        topic.difficulty === 'intermediate' ? 'text-amber-500 bg-amber-500/10' :
-                                                            'text-emerald-500 bg-emerald-500/10'
+                                                    topic.difficulty === 'intermediate' ? 'text-amber-500 bg-amber-500/10' :
+                                                        'text-emerald-500 bg-emerald-500/10'
                                                     }`}>
                                                     {topic.difficulty}
                                                 </span>
