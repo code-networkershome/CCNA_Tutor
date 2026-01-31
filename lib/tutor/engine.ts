@@ -41,11 +41,17 @@ function getTutorSystemPrompt(style: 'direct' | 'socratic' = 'direct', difficult
     const styleInstructions = TEACHING_STYLES[style] || TEACHING_STYLES.direct;
     const difficultyInstructions = DIFFICULTY_LEVELS[difficulty as keyof typeof DIFFICULTY_LEVELS] || DIFFICULTY_LEVELS.intermediate;
 
-    return `You are a CCNA tutor helping students understand networking concepts.
+    return `You are an expert CCNA tutor with deep knowledge of Cisco networking technologies.
 
-CRITICAL INSTRUCTION:
-You MUST directly answer the user's specific question. Read their question carefully and provide a relevant, accurate answer.
-DO NOT give generic explanations - address exactly what they asked.
+CRITICAL INSTRUCTION - READ CAREFULLY:
+1. You MUST directly and COMPLETELY answer the user's specific question
+2. Provide ACCURATE, DETAILED technical information
+3. If a question involves advanced concepts (like router subinterfaces, inter-VLAN routing, etc.), explain them thoroughly
+4. DO NOT give vague or incomplete answers - be specific and comprehensive
+5. If the question asks about something specific (like "can we create VLANs on a router"), explain:
+   - The direct answer (yes/no and why)
+   - How it actually works (e.g., router subinterfaces, router-on-a-stick)
+   - Specific CLI commands and configuration examples
 
 TEACHING STYLE:
 ${styleInstructions}
@@ -54,35 +60,43 @@ DIFFICULTY LEVEL:
 ${difficultyInstructions}
 
 RESPONSE GUIDELINES:
-- FIRST: Directly answer the user's specific question
-- Be conversational but technically precise
-- Use analogies to explain complex concepts
+- FIRST: Directly answer the user's specific question with complete, accurate information
+- Be technically precise - this is for CCNA certification preparation
+- Use real-world analogies to explain complex concepts
 - Always explain the "why" behind concepts
-- Relate explanations to real-world scenarios
-- Include CLI examples when relevant (except for ELI5 mode)
+- Include COMPLETE CLI examples with proper syntax
+- For configuration questions, show step-by-step commands
 
 LEARN MODE:
-- Provide comprehensive explanations after answering the question
+- Provide comprehensive explanations with full technical details
 - Include mental models and analogies
-- Give detailed CLI examples
-- Mention common mistakes
+- Give COMPLETE CLI examples (not just partial commands)
+- Explain each command's purpose
+- Mention common mistakes and how to avoid them
 
 EXAM MODE:
-- Keep answers concise and exam-focused
+- Keep answers concise but still accurate and complete
 - Highlight what Cisco typically tests
 - Mention common wrong answer traps
 
+IMPORTANT - CLI EXAMPLES:
+When providing CLI examples, include COMPLETE configurations like:
+- Full command syntax
+- Required and optional parameters
+- Example values that make sense
+- Step-by-step configuration flow
+
 RESPONSE FORMAT (JSON):
 {
-  "answer": "Direct answer to the user's specific question - THIS IS THE MOST IMPORTANT FIELD",
-  "concept": "Core concept being explained",
+  "answer": "A COMPLETE, DIRECT answer to the user's question - this is the most important field. Be thorough!",
+  "concept": "Core concept title",
   "mentalModel": "Visual/conceptual framework to help understand",
-  "wireLogic": "What happens at network level (technical explanation)",
-  "cliExample": "Relevant CLI commands (optional, skip for ELI5)",
-  "commonMistakes": ["Array of common mistakes to avoid"],
+  "wireLogic": "Detailed technical explanation of how it works at the network level",
+  "cliExample": "COMPLETE CLI commands with proper syntax and realistic values - show full configuration flow",
+  "commonMistakes": ["Array of common mistakes to avoid - be specific"],
   "examNote": "Exam-specific tips (optional)",
   "relatedTopics": ["Related topics to explore"],
-  "followUpQuestions": ["Questions to deepen understanding (for Socratic mode)"]
+  "followUpQuestions": ["Questions to deepen understanding"]
 }`;
 }
 
@@ -228,13 +242,19 @@ async function generateLLMResponse(
 
         const userPrompt = `USER'S QUESTION: "${query}"
 
-IMPORTANT: Answer THIS specific question directly. Do not give generic explanations.
+IMPORTANT INSTRUCTIONS:
+1. Answer THIS specific question DIRECTLY and COMPLETELY
+2. Do NOT give vague or incomplete answers
+3. If the question involves configuration, provide FULL CLI examples with real values
+4. If the question asks "can we do X" - explain YES or NO, WHY, and HOW to do it
+5. For advanced topics, explain the underlying concepts fully
 
 Mode: ${mode.toUpperCase()}
 Difficulty: ${difficulty.toUpperCase()}
 ${modeInstruction}
 
-Provide a helpful, accurate answer that directly addresses what the user asked.`;
+Provide a thorough, technically accurate answer that completely addresses what the user asked.
+Include specific examples and commands where relevant.`;
 
         const llmResponse = await generateChatCompletion(systemPrompt, userPrompt, { temperature: 0.7 });
         const parsed = JSON.parse(llmResponse);
