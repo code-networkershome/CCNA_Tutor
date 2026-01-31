@@ -138,112 +138,145 @@ export default function TopicsPage() {
     );
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-cisco-blue to-primary-600 rounded-xl p-8 text-white">
-                <h1 className="text-3xl font-bold mb-2">📚 CCNA 200-301 Curriculum</h1>
-                <p className="text-white/80 mb-4">
-                    Complete study guide based on the official Cisco CCNA exam objectives
-                </p>
-                <div className="flex gap-6 text-sm">
-                    <div className="bg-white/20 px-4 py-2 rounded-lg">
-                        <span className="font-bold">{CCNA_CURRICULUM.length}</span> Domains
+        <div className="space-y-8 max-w-5xl mx-auto">
+            {/* Header Section */}
+            <div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-slate-400">📖</span>
+                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Learning Path</span>
+                        </div>
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Topics</h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">Complete all topics to prepare for the CCNA certification exam</p>
                     </div>
-                    <div className="bg-white/20 px-4 py-2 rounded-lg">
-                        <span className="font-bold">{totalSubtopics}</span> Topics
+
+                    <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+                        <span>🏆</span> 5 of {totalSubtopics} completed
                     </div>
-                    <div className="bg-white/20 px-4 py-2 rounded-lg">
-                        <span className="font-bold">~{Math.round(totalMinutes / 60)}</span> Hours Content
+                </div>
+
+                {/* Overall Progress Bar */}
+                <div className="mt-6">
+                    <div className="flex justify-between text-sm mb-2">
+                        <span className="font-bold text-slate-900 dark:text-white">Overall Progress</span>
+                        <span className="font-bold text-emerald-600">19%</span>
+                    </div>
+                    <div className="h-3 bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full w-[19%]"></div>
+                    </div>
+                    <div className="flex gap-4 mt-2 text-xs">
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span className="text-slate-500">Completed</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-slate-900"></span>
+                            <span className="text-slate-500">In Progress</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-slate-200"></span>
+                            <span className="text-slate-500">Locked</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Domains Grid */}
+            {/* Domains List */}
             <div className="space-y-4">
-                {CCNA_CURRICULUM.map((domain) => (
-                    <div key={domain.id} className="card overflow-hidden">
-                        {/* Domain Header */}
-                        <button
-                            onClick={() => setExpandedDomain(expandedDomain === domain.id ? null : domain.id)}
-                            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className={`w-14 h-14 ${domain.color} rounded-xl flex items-center justify-center text-2xl text-white`}>
-                                    {domain.icon}
+                {CCNA_CURRICULUM.map((domain, index) => {
+                    // Mock progress for demo (matching screenshot loosely)
+                    const progress = [33, 25, 40, 0, 0, 0][index] || 0;
+                    const isExpanded = expandedDomain === domain.id;
+
+                    return (
+                        <div key={domain.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+                            {/* Domain Header */}
+                            <button
+                                onClick={() => setExpandedDomain(isExpanded ? null : domain.id)}
+                                className="w-full p-6 flex items-start md:items-center gap-4 text-left"
+                            >
+                                <div className="flex-shrink-0 w-12 h-12 bg-slate-100 dark:bg-gray-700 rounded-xl flex items-center justify-center font-bold text-slate-700 dark:text-slate-300">
+                                    {index + 1}.0
                                 </div>
-                                <div className="text-left">
-                                    <h2 className="text-xl font-bold">{domain.name}</h2>
-                                    <p className="text-sm text-gray-500">{domain.description}</p>
+                                <div className="flex-1">
+                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">{domain.name}</h2>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{domain.description}</p>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-right">
-                                    <div className="text-sm text-gray-500">{domain.subtopics.length} topics</div>
-                                    <div className="text-xs text-cisco-blue font-medium">{domain.weight}% of exam</div>
+
+                                <div className="hidden md:flex items-center gap-8 mr-4">
+                                    <div className="flex flex-col items-end w-32">
+                                        <span className="text-lg font-bold text-slate-900 dark:text-white">{progress}%</span>
+                                        <div className="w-full h-1.5 bg-slate-100 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
+                                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400 mt-1">{domain.subtopics.length} topics</span>
+                                    </div>
                                 </div>
-                                <span className={`text-2xl transition-transform ${expandedDomain === domain.id ? 'rotate-180' : ''}`}>
+
+                                <span className={`text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
                                     ▼
                                 </span>
-                            </div>
-                        </button>
+                            </button>
 
-                        {/* Subtopics List */}
-                        {expandedDomain === domain.id && (
-                            <div className="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 p-4">
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {domain.subtopics.map((topic) => (
-                                        <Link
-                                            key={topic.id}
-                                            href={`/learn/topics/${domain.id}/${topic.id}`}
-                                            className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-cisco-blue hover:shadow-md transition-all group"
-                                        >
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className={`text-xs px-2 py-1 rounded-full ${topic.difficulty === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                    topic.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                        'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                                    }`}>
-                                                    {topic.difficulty}
-                                                </span>
-                                                <span className="text-xs text-gray-400">{topic.minutes} min</span>
-                                            </div>
-                                            <h3 className="font-medium group-hover:text-cisco-blue transition-colors">
-                                                {topic.name}
-                                            </h3>
-                                        </Link>
-                                    ))}
+                            {/* Expanded Content */}
+                            {isExpanded && (
+                                <div className="border-t border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
+                                    <div className="divide-y divide-slate-100 dark:divide-gray-700">
+                                        {domain.subtopics.map((topic, subIndex) => {
+                                            // Mock status
+                                            const isDone = index === 0 && subIndex < 2;
+                                            const isLocked = index > 2;
+
+                                            return (
+                                                <div key={topic.id} className="p-4 pl-6 md:pl-20 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white dark:hover:bg-gray-700/50 transition-colors">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 
+                                                            ${isDone ? 'bg-emerald-500 border-emerald-500 text-white' :
+                                                                isLocked ? 'border-slate-200 text-slate-300' : 'border-slate-300 text-transparent'}`}>
+                                                            {isDone && '✓'}
+                                                            {isLocked && '🔒'}
+                                                        </div>
+                                                        <div>
+                                                            <h3 className={`font-medium ${isLocked ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+                                                                {index + 1}.{subIndex + 1} {topic.name}
+                                                            </h3>
+                                                            {isDone && (
+                                                                <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] uppercase font-bold tracking-wide rounded">Done</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-4 pl-10 md:pl-0">
+                                                        <span className="text-sm text-slate-400 flex items-center gap-1">
+                                                            <span>⏱</span> {topic.minutes}m
+                                                        </span>
+
+                                                        {isLocked ? (
+                                                            <button disabled className="px-4 py-2 bg-slate-100 text-slate-400 text-sm font-semibold rounded-lg cursor-not-allowed">
+                                                                Locked
+                                                            </button>
+                                                        ) : (
+                                                            <Link
+                                                                href={isDone ? `/learn/topics/${domain.id}/${topic.id}/review` : `/learn/topics/${domain.id}/${topic.id}`}
+                                                                className={`px-6 py-2 text-sm font-semibold rounded-lg transition-colors
+                                                                    ${isDone
+                                                                        ? 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                                                                        : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                                                            >
+                                                                {isDone ? 'Review' : 'Start'}
+                                                            </Link>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-
-                                {/* Start Learning Button */}
-                                <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-center">
-                                    <Link
-                                        href={`/learn/topics/${domain.id}`}
-                                        className="btn-primary"
-                                    >
-                                        Start Learning {domain.name} →
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-
-            {/* Quick Start CTA */}
-            <div className="card p-6 bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-cisco-blue/20">
-                <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-cisco-blue rounded-xl flex items-center justify-center text-3xl flex-shrink-0">
-                        🎯
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-semibold">Not sure where to start?</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Take a quick assessment to identify your knowledge gaps
-                        </p>
-                    </div>
-                    <Link href="/learn/quiz" className="btn-outline flex-shrink-0">
-                        Take Assessment
-                    </Link>
-                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

@@ -94,35 +94,75 @@ export default function QuizListPage() {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 max-w-7xl mx-auto">
+            {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold">Practice Quizzes</h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                    Test your knowledge with topic-specific quizzes
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                    <span className="text-slate-400">📝</span>
+                    <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Assessment Center</span>
+                </div>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Practice Quizzes</h1>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">Test your knowledge with topic-specific quizzes and full exams</p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {displayQuizzes.map((quiz) => (
-                    <div key={quiz.id} className="card p-6 hover:shadow-lg transition-shadow">
-                        <h3 className="text-lg font-semibold mb-2">{quiz.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            {quiz.description}
+            {/* Featured / Recent Section (Mock) */}
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-2">Ready for a challenge?</h2>
+                        <p className="text-white/90 mb-6 max-w-lg">
+                            Take a comprehensive practice exam to simulate the real CCNA 200-301 test environment.
+                            Includes time limits and weighted scoring.
                         </p>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {quiz.topics.map((topic) => (
-                                <span key={topic} className="badge-secondary">{topic}</span>
-                            ))}
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                            <span>{quiz.questionCount} questions</span>
-                            {quiz.timeLimit && <span>{quiz.timeLimit} min</span>}
-                        </div>
-                        <Link href={`/learn/quiz/${quiz.id}`} className="btn-primary w-full text-center">
-                            Start Quiz
+                        <Link href="/learn/quiz/23" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-colors">
+                            <span>🔥</span> Start Practice Exam
                         </Link>
                     </div>
-                ))}
+                </div>
+            </div>
+
+            {/* Quiz Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {displayQuizzes.map((quiz, index) => {
+                    // Determine category color based on index or title (mock)
+                    const isExam = quiz.title.includes('Exam');
+                    const categoryColor = isExam ? 'bg-indigo-100 text-indigo-600' :
+                        index % 3 === 0 ? 'bg-emerald-100 text-emerald-600' :
+                            index % 3 === 1 ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600';
+
+                    return (
+                        <div key={quiz.id} className="group bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all hover:border-cisco-blue">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${categoryColor}`}>
+                                    {quiz.topics[0]}
+                                </div>
+                                <div className="text-slate-400 text-sm font-medium">
+                                    {quiz.timeLimit} min
+                                </div>
+                            </div>
+
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-cisco-blue transition-colors">
+                                {quiz.title}
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 line-clamp-2">
+                                {quiz.description}
+                            </p>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-gray-700">
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                                    <span>❓</span> {quiz.questionCount} Questions
+                                </div>
+                                <Link
+                                    href={`/learn/quiz/${quiz.id}`}
+                                    className="flex items-center gap-1 text-sm font-bold text-slate-900 dark:text-white hover:underline decoration-cisco-blue decoration-2 underline-offset-4"
+                                >
+                                    Start <span className="text-cisco-blue">→</span>
+                                </Link>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

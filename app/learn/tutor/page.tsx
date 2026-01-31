@@ -227,122 +227,56 @@ export default function TutorPage() {
     const suggestedQuestions = mode === 'exam' ? examQuestions : learningQuestions;
 
     return (
-        <div className="h-[calc(100vh-8rem)] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+        <div className="h-[calc(100vh-8rem)] flex flex-col space-y-4 max-w-6xl mx-auto">
+            {/* Minimal Header */}
+            <div className="flex items-center justify-between px-2">
                 <div>
-                    <h1 className="text-2xl font-bold">🤖 AI Tutor</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Ask me anything about CCNA topics</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span className="text-3xl">✨</span> AI Tutor
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">Ask questions about CCNA topics and get detailed explanations</p>
                 </div>
-            </div>
 
-            {/* Settings Bar */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-4 flex flex-wrap items-center gap-4">
-                {/* Mode */}
+                {/* Visual Settings Toggle */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 uppercase">Mode:</span>
-                    <select
-                        value={mode}
-                        onChange={(e) => setMode(e.target.value as 'learn' | 'exam')}
-                        className="input py-1 px-3 text-sm"
-                    >
-                        <option value="learn">📚 Learn</option>
-                        <option value="exam">📝 Exam</option>
-                    </select>
-                </div>
-
-                {/* Teaching Style */}
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 uppercase">Style:</span>
-                    <select
-                        value={style}
-                        onChange={(e) => setStyle(e.target.value as 'direct' | 'socratic')}
-                        className="input py-1 px-3 text-sm"
-                    >
-                        <option value="direct">💬 Direct Answers</option>
-                        <option value="socratic">🤔 Socratic (Guided)</option>
-                    </select>
-                </div>
-
-                {/* Difficulty */}
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 uppercase">Level:</span>
-                    <select
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value as any)}
-                        className="input py-1 px-3 text-sm"
-                    >
-                        <option value="eli5">👶 ELI5 (Simple)</option>
-                        <option value="beginner">🌱 Beginner</option>
-                        <option value="intermediate">🌿 Intermediate</option>
-                        <option value="expert">🌳 Expert</option>
-                    </select>
-                </div>
-
-                {/* Voice Toggle */}
-                <div className="flex items-center gap-2 ml-auto">
+                    <span className={`text-xs px-2 py-1 rounded-full border ${mode === 'exam' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                        {mode === 'exam' ? 'Exam Mode' : 'Learn Mode'}
+                    </span>
                     <button
-                        onClick={() => setVoiceEnabled(!voiceEnabled)}
-                        className={`p-2 rounded-lg transition-colors ${voiceEnabled
-                            ? 'bg-cisco-blue text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                            }`}
-                        title={voiceEnabled ? 'Disable voice' : 'Enable voice'}
+                        onClick={() => setMode(mode === 'learn' ? 'exam' : 'learn')}
+                        className="text-xs text-slate-500 underline"
                     >
-                        {voiceEnabled ? '🔊' : '🔇'}
+                        Switch
                     </button>
-                    {isSpeaking && (
-                        <button
-                            onClick={stopSpeaking}
-                            className="p-2 rounded-lg bg-red-500 text-white animate-pulse"
-                            title="Stop speaking"
-                        >
-                            ⏹️
-                        </button>
-                    )}
                 </div>
             </div>
 
-            {/* Style Info Banner */}
-            {mode === 'exam' && (
-                <div className="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 p-3 mb-4 rounded text-sm">
-                    <strong>📝 Exam Mode:</strong> Responses will be concise, exam-focused, and highlight what Cisco typically tests.
-                </div>
-            )}
+            {/* Main Chat Container */}
+            <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-slate-200 dark:border-gray-700 overflow-hidden flex flex-col">
 
-            {style === 'socratic' && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-3 mb-4 rounded text-sm">
-                    <strong>🤔 Socratic Mode:</strong> I&apos;ll guide you to discover answers through questions rather than giving direct answers.
-                </div>
-            )}
-
-            {difficulty === 'eli5' && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 mb-4 rounded text-sm">
-                    <strong>👶 ELI5 Mode:</strong> Explanations will use simple everyday analogies without technical jargon.
-                </div>
-            )}
-
-            {/* Chat Area */}
-            <div className="flex-1 card overflow-hidden flex flex-col">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {messages.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="text-6xl mb-4">🤖</div>
-                            <h2 className="text-xl font-semibold mb-2">
-                                {mode === 'exam' ? '🎯 Ready for Exam Practice?' : 'How can I help you?'}
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 max-w-2xl mx-auto">
+                            <div className="w-16 h-16 bg-gradient-to-br from-cisco-blue to-cyan-500 rounded-2xl flex items-center justify-center text-4xl shadow-lg mb-6 text-white">
+                                🤖
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                                Hello! I am your CCNA study assistant.
                             </h2>
-                            <p className="text-gray-600 dark:text-gray-400 mb-6">
-                                {mode === 'exam'
-                                    ? 'Quick-fire questions to test your CCNA knowledge'
-                                    : 'Ask me about any CCNA networking concept'
-                                }
+                            <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                                I can help you understand protocols, checking configurations, or practicing for the exam.
+                                <br />What would you like to learn about today?
                             </p>
-                            <div className="flex flex-wrap justify-center gap-2">
+
+                            {/* Suggested Questions Grid */}
+                            <div className="flex flex-wrap justify-center gap-3">
                                 {suggestedQuestions.map((q) => (
                                     <button
                                         key={q}
                                         onClick={() => setInput(q)}
-                                        className="btn-outline text-sm"
+                                        className="px-4 py-2 bg-slate-50 dark:bg-gray-700/50 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl text-sm text-slate-600 dark:text-slate-300 transition-colors"
                                     >
                                         {q}
                                     </button>
@@ -350,107 +284,115 @@ export default function TutorPage() {
                             </div>
                         </div>
                     ) : (
-                        messages.map((message) => (
-                            <div
-                                key={message.id}
-                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
+                        <div className="space-y-6">
+                            {messages.map((message) => (
                                 <div
-                                    className={`max-w-[80%] rounded-xl p-4 ${message.role === 'user'
-                                        ? 'bg-cisco-blue text-white'
-                                        : 'bg-gray-100 dark:bg-gray-800'
-                                        }`}
+                                    key={message.id}
+                                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
-                                    <MarkdownMessage content={message.content} isUser={message.role === 'user'} />
-
-                                    {/* Follow-up Questions (Socratic Mode) */}
-                                    {message.followUpQuestions && message.followUpQuestions.length > 0 && (
-                                        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                            <p className="text-xs font-medium mb-2 opacity-70">💡 Think about:</p>
-                                            <div className="space-y-1">
-                                                {message.followUpQuestions.map((q, i) => (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => askFollowUp(q)}
-                                                        className="block text-left text-xs text-cisco-blue hover:underline"
-                                                    >
-                                                        → {q}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                    {/* Avatar for Assistant */}
+                                    {message.role === 'assistant' && (
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cisco-blue to-cyan-500 flex items-center justify-center text-white text-xs mr-3 flex-shrink-0 mt-1">
+                                            AI
                                         </div>
                                     )}
 
-                                    {/* Source & Voice */}
-                                    {message.source && (
-                                        <div className="mt-2 text-xs opacity-70 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`badge ${message.source === 'cache' ? 'badge-success' :
-                                                    message.source === 'database' ? 'badge-primary' : 'badge-warning'
-                                                    }`}>
-                                                    {message.source}
-                                                </span>
-                                                {message.latency && <span>{message.latency}ms</span>}
+                                    <div
+                                        className={`max-w-[85%] rounded-2xl p-5 shadow-sm ${message.role === 'user'
+                                            ? 'bg-slate-900 text-white rounded-br-none'
+                                            : 'bg-slate-50 dark:bg-gray-700/50 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-gray-600 rounded-bl-none'
+                                            }`}
+                                    >
+                                        <MarkdownMessage content={message.content} isUser={message.role === 'user'} />
+
+                                        {/* Follow-ups */}
+                                        {message.followUpQuestions && message.followUpQuestions.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t border-slate-200/50">
+                                                <p className="text-xs font-bold uppercase tracking-wider opacity-60 mb-2">Suggested follow-ups</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {message.followUpQuestions.map((q, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => askFollowUp(q)}
+                                                            className="px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg text-xs font-medium border border-slate-200 dark:border-gray-600 hover:border-cisco-blue transition-colors text-cisco-blue"
+                                                        >
+                                                            {q}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
-                                            {voiceEnabled && message.role === 'assistant' && (
-                                                <button
-                                                    onClick={() => speakText(message.content)}
-                                                    className="hover:opacity-100 opacity-50 transition-opacity"
-                                                    title="Read aloud"
-                                                >
-                                                    🔊
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                        )}
+
+                                        {/* Metadata */}
+                                        {message.source && !message.role.includes('user') && (
+                                            <div className="mt-2 flex items-center gap-2 opacity-50 text-[10px] uppercase tracking-wider">
+                                                <span>Source: {message.source}</span>
+                                                {message.latency && <span>• {message.latency}ms</span>}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))
-                    )}
-                    {loading && (
-                        <div className="flex justify-start">
-                            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-cisco-blue rounded-full animate-bounce" />
-                                    <div className="w-2 h-2 bg-cisco-blue rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                    <div className="w-2 h-2 bg-cisco-blue rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            ))}
+                            {loading && (
+                                <div className="flex justify-start">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cisco-blue to-cyan-500 flex items-center justify-center text-white text-xs mr-3 flex-shrink-0 mt-1">
+                                        AI
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-gray-700/50 rounded-2xl p-4 border border-slate-100 dark:border-gray-600 rounded-bl-none flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75" />
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150" />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+                            <div ref={messagesEndRef} />
                         </div>
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Area */}
-                <form onSubmit={handleSubmit} className="p-4 border-t dark:border-gray-700">
-                    <div className="flex gap-2">
-                        {/* Voice Input Button - Always show if supported */}
-                        {speechSupported && (
-                            <button
-                                type="button"
-                                onClick={isListening ? stopListening : startListening}
-                                className={`p-3 rounded-lg transition-colors ${isListening
-                                    ? 'bg-red-500 text-white animate-pulse'
-                                    : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                                    }`}
-                                title={isListening ? 'Stop listening' : 'Voice input'}
-                            >
-                                🎤
-                            </button>
-                        )}
+                <div className="p-4 bg-white dark:bg-gray-800 border-t border-slate-100 dark:border-gray-700">
+                    <form onSubmit={handleSubmit} className="relative max-w-4xl mx-auto">
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder={isListening ? 'Listening...' : 'Ask about VLANs, OSPF, subnetting...'}
-                            className="input flex-1"
+                            placeholder={isListening ? 'Listening...' : 'Ask about CCNA topics, configurations, or concepts...'}
+                            className="w-full pl-6 pr-32 py-4 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cisco-blue/20 focus:border-cisco-blue transition-all disabled:opacity-50"
                             disabled={loading || isListening}
                         />
-                        <button type="submit" disabled={loading || !input.trim()} className="btn-primary px-6">
-                            Send
-                        </button>
-                    </div>
-                </form>
+
+                        <div className="absolute right-2 top-2 bottom-2 flex items-center gap-2">
+                            {/* Voice Button */}
+                            {speechSupported && (
+                                <button
+                                    type="button"
+                                    onClick={isListening ? stopListening : startListening}
+                                    className={`p-2 rounded-xl transition-all ${isListening
+                                        ? 'bg-red-50 text-red-600 animate-pulse'
+                                        : 'hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600'
+                                        }`}
+                                >
+                                    🎤
+                                </button>
+                            )}
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={loading || !input.trim()}
+                                className="bg-slate-900 hover:bg-slate-800 text-white p-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                    <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                    <p className="text-center text-xs text-slate-400 mt-3">
+                        AI can make mistakes. Always verify with official Cisco documentation.
+                    </p>
+                </div>
             </div>
         </div>
     );
