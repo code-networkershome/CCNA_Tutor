@@ -101,7 +101,10 @@ export default function LabsPage() {
                 id: 'R1',
                 name: 'Router 1',
                 type: 'router',
-                interfaces: {},
+                interfaces: {
+                    'GigabitEthernet0/0': { name: 'GigabitEthernet0/0', status: 'down' },
+                    'GigabitEthernet0/1': { name: 'GigabitEthernet0/1', status: 'down' }
+                },
                 position: { x: 0, y: 0 },
                 config: {
                     device: 'router',
@@ -109,7 +112,10 @@ export default function LabsPage() {
                     prompt: 'Router>',
                     runningConfig: '',
                     hostname: 'Router',
-                    interfaces: {},
+                    interfaces: {
+                        'GigabitEthernet0/0': { status: 'administratively down' },
+                        'GigabitEthernet0/1': { status: 'administratively down' }
+                    },
                     vlans: [],
                     routes: [],
                     modeHistory: [],
