@@ -203,16 +203,12 @@ export default function LabsPage() {
                 'GigabitEthernet0/3': { name: 'GigabitEthernet0/3', status: 'shutdown' }
             };
         } else if (type === 'switch') {
-            // Add 8 ports for more complex topologies
+            // Add 4 ports as requested
             defaultInterfaces = {
                 'FastEthernet0/1': { name: 'FastEthernet0/1', status: 'up' },
                 'FastEthernet0/2': { name: 'FastEthernet0/2', status: 'up' },
                 'FastEthernet0/3': { name: 'FastEthernet0/3', status: 'up' },
-                'FastEthernet0/4': { name: 'FastEthernet0/4', status: 'up' },
-                'FastEthernet0/5': { name: 'FastEthernet0/5', status: 'up' },
-                'FastEthernet0/6': { name: 'FastEthernet0/6', status: 'up' },
-                'FastEthernet0/7': { name: 'FastEthernet0/7', status: 'up' },
-                'FastEthernet0/8': { name: 'FastEthernet0/8', status: 'up' }
+                'FastEthernet0/4': { name: 'FastEthernet0/4', status: 'up' }
             };
         }
 

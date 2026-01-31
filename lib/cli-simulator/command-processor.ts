@@ -148,6 +148,14 @@ export async function processCommand(state: CLIState, input: string, context?: {
         else if (args.iface && (tokens[0] === 'interface' || tokens[0] === 'int')) {
             const fullIface = normalizeInterfaceName(args.iface);
             const next = StateEngine.transitionMode(state, 'interface_config');
+
+            // Auto-create interface if it doesn't exist (Dynamic Port Creation)
+            if (!next.interfaces[fullIface]) {
+                next.interfaces[fullIface] = {
+                    status: 'administratively down'
+                };
+            }
+
             next.modeHistory = [...state.modeHistory, 'global_config'];
             next.currentInterface = fullIface;
             newState = next;

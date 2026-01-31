@@ -61,6 +61,23 @@ export async function POST(request: NextRequest) {
             // 1. Sync active device state into topology
             if (newTopology.devices[deviceId]) {
                 newTopology.devices[deviceId].config = newState;
+
+                // Sync software interfaces to hardware interfaces
+                // This allows manual CLI creation of ports (e.g. 'int gi0/5') to appear in topology
+                const hardwareInterfaces = newTopology.devices[deviceId].interfaces;
+                Object.keys(newState.interfaces).forEach(ifaceName => {
+                    // Only sync physical interfaces (Ethernet types), ignore Loopback/VLAN/Tunnel
+                    if (
+                        !hardwareInterfaces[ifaceName] &&
+                        ifaceName.match(/^(FastEthernet|GigabitEthernet|Ethernet)/i)
+                    ) {
+                        hardwareInterfaces[ifaceName] = {
+                            name: ifaceName,
+                            status: 'up', // Default to up (cable unplugged but port exists)
+                            connectedTo: undefined
+                        };
+                    }
+                });
             }
 
             // 2. Process Routing / Link State Simulation
