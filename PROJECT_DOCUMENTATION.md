@@ -19,6 +19,8 @@ The platform bridges the gap between theoretical knowledge and practical applica
 *   **Gamification**: XP system, streak tracking, leaderboards, and achievements to maintain user engagement.
 *   **Admin Dashboard**: Comprehensive tools for content management (labs, quizzes, flashcards), user oversight, and system analytics.
 *   **Study Groups**: Collaborative learning features allowing students to join groups, discuss topics, and compete in challenges.
+*   **Premium User Experience**: A completely redesigned, "Glassmorphism" UI with dark mode support, fluid animations, and a dedicated User Profile page.
+*   **Multi-Device Simulation**: Drag-and-drop topology builder allowing users to connect multiple routers/switches and simulate end-to-end connectivity (Ping/Trace).
 
 ---
 
@@ -111,9 +113,21 @@ The simulator is 100% deterministic, meaning the same sequence of commands will 
 *   **Networking Logic**:
     *   **IP Addressing**: Validates masks, calculates network IDs, simulates overlapping check.
     *   **Routing Protocols**:
-        *   **RIPv2**: `version 2`, `no auto-summary`, `network X.X.X.X`.
-        *   **OSPF**: `network X.X.X.X wildcard area Y`.
-    *   **VLANs**: Database of simple L2 VLANs.
+    *   **Routing Protocols**:
+        *   **RIPv2**: `version 2`, `no auto-summary`, `network`.
+        *   **OSPF**: Multi-area support, neighbor states.
+        *   **EIGRP**: AS-based routing, composite metric logic.
+        *   **BGP**: eBGP peering, path attribute simulation.
+        *   **Static**: Recursive lookups, default routes.
+    *   **Switching & L2**:
+        *   **VLANs**: Database, Access/Trunk ports (`switchport mode`).
+        *   **STP**: PVST+, Rapid-PVST simulation.
+        *   **EtherChannel**: LACP/PaGP negotiation and load balancing.
+    *   **Security & Services**:
+        *   **ACLs**: Standard & Extended Access Lists (Stateful matching).
+        *   **NAT**: Inside Source (Static/Dynamic/Overload).
+        *   **DHCP**: Server/Client simulation, Pools, Exclusions.
+        *   **Port Security**: Violation modes, Sticky MACs.
 *   **Validation**:
     *   **State-Based**: Checks if the internal state object matches the goal (e.g., `state.interfaces['g0/0'].ip == '10.0.0.1'`).
     *   **Output-Based**: Checks if the `show` command output contains specific strings.
@@ -186,9 +200,21 @@ The project is optimized for deployment on Vercel.
 *   **Audit**: Critical actions (like deleting content) are logged in `audit_log`.
 
 ### 6.3 Future Roadmap
-*   **Multi-Device Simulation**: Support for connecting multiple simulated routers (e.g., `ping` between devices).
 *   **Real-Time Collaboration**: Websockets for live study groups.
 *   **Mobile App**: React Native port for on-the-go learning.
+
+---
+
+## 7. Version History
+
+### v1.0.0 (January 2026) - The "Gold" Release
+*   **Full CLI Support**: Completed implementation of all major CCNA protocols (EIGRP, BGP, STP, ACLs).
+*   **UI Overhaul**: Applied "Modern Cisco Premium" design language across all pages.
+*   **System Integration**:
+    *   Unified Admin/Student Dashboards.
+    *   Implemented `ProfilePage` with dynamic stats.
+    *   Fixed Vercel build pipeline and deployment configs.
+*   **Admin Tools**: Restored Flashcards, fixed Sidebar layout, and cleaned up mock data.
 
 ---
 
