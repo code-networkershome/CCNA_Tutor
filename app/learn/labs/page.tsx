@@ -218,7 +218,17 @@ export default function LabsPage() {
                             activeDeviceId={activeDeviceId}
                             onDeviceSelect={setActiveDeviceId}
                             onConnect={(p) => setTopology(prev => connectDevices(prev, p.source, p.sourcePort, p.target, p.targetPort))}
-                            onPositionsChange={(p) => { }}
+                            onPositionsChange={(positions) => {
+                                setTopology(prev => {
+                                    const newDevices = { ...prev.devices };
+                                    Object.entries(positions).forEach(([id, pos]) => {
+                                        if (newDevices[id]) {
+                                            newDevices[id] = { ...newDevices[id], position: pos };
+                                        }
+                                    });
+                                    return { ...prev, devices: newDevices };
+                                });
+                            }}
                         />
                     </div>
 

@@ -1,6 +1,7 @@
 
 import React, { useCallback, useMemo } from 'react';
-import ReactFlow, {
+useNodesState,
+    useEdgesState,
     Node,
     Edge,
     Controls,
@@ -61,37 +62,37 @@ const nodeTypes = {
 };
 
 export default function TopologyCanvas({ topology, activeDeviceId, onDeviceSelect, onConnect, onPositionsChange }: TopologyCanvasProps) {
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-    // Map Topology to ReactFlow Nodes
-    const initialNodes: Node[] = useMemo(() => {
-        return Object.values(topology.devices).map(dev => ({
+    // Sync Topology to Nodes/Edges
+    React.useEffect(() => {
+        const newNodes: Node[] = Object.values(topology.devices).map(dev => ({
             id: dev.id,
-            type: 'networkDevice', // Use custom type
+            type: 'networkDevice',
             position: dev.position || { x: 100 + Math.random() * 50, y: 100 + Math.random() * 50 },
             data: {
                 label: dev.name || dev.id,
                 type: dev.type,
                 isActive: dev.id === activeDeviceId,
-                interfaces: Object.keys(dev.interfaces || {}) // Pass interfaces keys
+                interfaces: Object.keys(dev.interfaces || {})
             },
         }));
-    }, [topology.devices, activeDeviceId]);
+        setNodes(newNodes);
 
-    // Map Topology Links to ReactFlow Edges
-    const initialEdges: Edge[] = useMemo(() => {
-        return topology.links.map(link => ({
+        const newEdges: Edge[] = topology.links.map(link => ({
             id: link.id,
             source: link.source.deviceId,
             target: link.target.deviceId,
             sourceHandle: link.source.port,
             targetHandle: link.target.port,
-            label: ``,
             type: 'default',
             animated: link.status === 'up',
             style: { stroke: link.status === 'up' ? '#10b981' : '#ef4444', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed },
         }));
-    }, [topology.links]);
+        setEdges(newEdges);
+    }, [topology, activeDeviceId, setNodes, setEdges]);
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         onDeviceSelect(node.id);
@@ -108,21 +109,6 @@ export default function TopologyCanvas({ topology, activeDeviceId, onDeviceSelec
         }
     }, [onConnect]);
 
-    const onNodesChange = useCallback((changes: any[]) => {
-        if (!onPositionsChange) return;
-
-        // Filter for position changes
-        const positionChanges = changes.filter(c => c.type === 'position' && c.dragging);
-        if (positionChanges.length === 0) return;
-
-        // In a real app we would throttle this, but for now simple callback
-        // We'll just pass the map of IDs to check
-        // Ideally we accumulate changes but ReactFlow 'onNodesChange' is granular
-
-        // Simpler approach: ReactFlow state is internal, but we need to sync back to our Topology
-        // We can capture 'onNodeDragStop' instead for persistence efficiently
-    }, [onPositionsChange]);
-
     const onNodeDragStop = useCallback((event: any, node: Node) => {
         if (onPositionsChange) {
             onPositionsChange({
@@ -134,8 +120,10 @@ export default function TopologyCanvas({ topology, activeDeviceId, onDeviceSelec
     return (
         <div className="w-full h-[400px] border border-gray-200 dark:border-gray-800 rounded-lg bg-gray-50 dark:bg-gray-900 overflow-hidden relative">
             <ReactFlow
-                nodes={initialNodes}
-                edges={initialEdges}
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes as any}
                 onNodeClick={onNodeClick}
                 onConnect={handleConnect}
