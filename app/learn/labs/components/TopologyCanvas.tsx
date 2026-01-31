@@ -23,12 +23,12 @@ interface TopologyCanvasProps {
 }
 
 // Custom Node Integration
-const DeviceNode = ({ data }: { data: { label: string, type: 'router' | 'switch', isActive: boolean, interfaces: string[] } }) => (
+const DeviceNode = ({ data }: { data: { label: string, type: 'router' | 'switch' | 'pc', isActive: boolean, interfaces: string[] } }) => (
     <div className={`px-4 py-2 shadow-md rounded-md border-2 min-w-[150px] ${data.isActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
         }`}>
         <div className="flex flex-col items-center mb-2">
-            <div className={`text-2xl mb-1 ${data.type === 'router' ? 'text-blue-600' : 'text-green-600'}`}>
-                {data.type === 'router' ? '🌐' : '🔌'}
+            <div className={`text-2xl mb-1 ${data.type === 'router' ? 'text-blue-600' : (data.type === 'switch' ? 'text-green-600' : 'text-gray-600')}`}>
+                {data.type === 'router' ? '🌐' : (data.type === 'switch' ? '🔌' : '💻')}
             </div>
             <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{data.label}</div>
             <div className="text-xs text-gray-500 capitalize">{data.type}</div>

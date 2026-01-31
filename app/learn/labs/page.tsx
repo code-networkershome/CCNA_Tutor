@@ -166,25 +166,52 @@ export default function LabsPage() {
         inputRef.current?.focus();
     }, []);
 
-    const handleAddDevice = (type: 'router' | 'switch') => {
+    const handleAddDevice = (type: 'router' | 'switch' | 'pc') => {
         const count = Object.keys(topology.devices).filter(k => topology.devices[k].type === type).length + 1;
-        const id = type === 'router' ? `R${count}` : `SW${count}`;
+
+        let prefix = 'R';
+        if (type === 'switch') prefix = 'SW';
+        if (type === 'pc') prefix = 'PC';
+
+        const id = `${prefix}${count}`;
 
         // Prevent duplicate IDs if simple counting fails (e.g. R1, R2 deleted, add R2 again)
         // Simple fallback
         const finalId = topology.devices[id] ? `${id}_${Date.now().toString().slice(-4)}` : id;
 
+        let defaultInterfaces: any = {};
+
+        if (type === 'pc') {
+            defaultInterfaces = {
+                'Eth0': { name: 'Eth0', status: 'up' }
+            };
+        } else if (type === 'router') {
+            defaultInterfaces = {
+                'GigabitEthernet0/0': { name: 'GigabitEthernet0/0', status: 'shutdown' },
+                'GigabitEthernet0/1': { name: 'GigabitEthernet0/1', status: 'shutdown' }
+            };
+        } else if (type === 'switch') {
+            // Add 4 ports for simulation simplicity
+            defaultInterfaces = {
+                'FastEthernet0/1': { name: 'FastEthernet0/1', status: 'up' },
+                'FastEthernet0/2': { name: 'FastEthernet0/2', status: 'up' },
+                'FastEthernet0/3': { name: 'FastEthernet0/3', status: 'up' },
+                'FastEthernet0/4': { name: 'FastEthernet0/4', status: 'up' }
+            };
+        }
+
         const newDevice: any = { // Using any cast temporarily to fix lint strictness if types slightly mismatch
             id: finalId,
-            name: type === 'router' ? `Router ${count}` : `Switch ${count}`,
+            name: type === 'router' ? `Router ${count}` : (type === 'switch' ? `Switch ${count}` : `PC ${count}`),
             type,
-            interfaces: {},
+            interfaces: defaultInterfaces,
             position: { x: 0, y: 0 },
             config: {
                 ...DEFAULT_CLI_STATE,
                 device: type,
-                hostname: type === 'router' ? `Router` : `Switch`,
-                prompt: type === 'router' ? `Router>` : `Switch>`
+                hostname: type === 'router' ? `Router` : (type === 'switch' ? `Switch` : `PC`),
+                prompt: type === 'router' ? `Router>` : (type === 'switch' ? `Switch>` : `PC>`),
+                interfaces: defaultInterfaces
             }
         };
 
@@ -192,8 +219,9 @@ export default function LabsPage() {
             ...prev,
             devices: { ...prev.devices, [finalId]: newDevice }
         }));
-        setActiveDeviceId(finalId);
-        setCommandHistory([]); // Clear history for new device view
+        // Do not auto-select new device to allow rapid topology building
+        // setActiveDeviceId(finalId);
+        // setCommandHistory([]); 
     };
 
     const handleCreateLab = () => {
@@ -507,6 +535,13 @@ export default function LabsPage() {
                             >
                                 +SW
                             </button>
+                            <button
+                                onClick={() => handleAddDevice('pc')}
+                                className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+                                title="Add PC"
+                            >
+                                +PC
+                            </button>
                         </div>
                     </div>
 
@@ -539,67 +574,78 @@ export default function LabsPage() {
                                 <span className="text-yellow-400">💡 Tip: This terminal is powered by AI and understands natural Cisco commands!</span>
                             </div>
 
-                            {commandHistory.map((entry, i) => (
-                                <div key={i} className="mb-1">
-                                    <div>
-                                        <span className="cli-prompt">{entry.prompt}</span>
-                                        <span className="cli-command">{entry.command.command}</span>
-                                    </div>
-                                    {entry.command.output && (
-                                        <div className={entry.command.valid ? 'cli-output whitespace-pre-wrap' : 'cli-error whitespace-pre-wrap'}>
-                                            {entry.command.output}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            <form onSubmit={handleSubmit} className="flex">
-                                <span className="cli-prompt">{topology.devices[activeDeviceId].config?.prompt || '>'}</span>
-                                {isProcessing ? (
-                                    <span className="animate-pulse text-gray-400 ml-1">▋</span>
-                                ) : (
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        className="flex-1 bg-transparent border-none outline-none text-white font-mono"
-                                        autoComplete="off"
-                                        spellCheck={false}
-                                        autoFocus
-                                    />
-                                )}
-                            </form>
                         </div>
-                    </div>
 
-                    {/* Quick Commands */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        <span className="text-sm text-gray-500">Quick commands:</span>
-                        {['enable', 'conf t', 'show run', 'sh ip int br', 'show vlan', '?'].map((cmd) => (
-                            <button
-                                key={cmd}
-                                onClick={() => !isProcessing && setInput(cmd)}
-                                disabled={isProcessing}
-                                className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
-                            >
-                                {cmd}
-                            </button>
-                        ))}
-                    </div>
+                        {activeDeviceId && topology.devices[activeDeviceId] ? (
+                            <>
+                                {commandHistory.map((entry, i) => (
+                                    <div key={i} className="mb-1">
+                                        <div>
+                                            <span className="cli-prompt">{entry.prompt}</span>
+                                            <span className="cli-command">{entry.command.command}</span>
+                                        </div>
+                                        {entry.command.output && (
+                                            <div className={entry.command.valid ? 'cli-output whitespace-pre-wrap' : 'cli-error whitespace-pre-wrap'}>
+                                                {entry.command.output}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
 
-                    {/* Mode Indicator */}
-                    <div className="mt-2 text-xs text-gray-500 flex justify-between">
-                        <span>
-                            Current mode: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                                {topology.devices[activeDeviceId].config?.mode.replace('_', ' ') || 'user'}
-                            </span>
+                                <form onSubmit={handleSubmit} className="flex">
+                                    <span className="cli-prompt">{topology.devices[activeDeviceId].config?.prompt || '>'}</span>
+                                    {isProcessing ? (
+                                        <span className="animate-pulse text-gray-400 ml-1">▋</span>
+                                    ) : (
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            className="flex-1 bg-transparent border-none outline-none text-white font-mono"
+                                            autoComplete="off"
+                                            spellCheck={false}
+                                            autoFocus
+                                        />
+                                    )}
+                                </form>
+                            </>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                <div className="text-4xl mb-2">🔌</div>
+                                <p>Select a device from the topology or toolbar to configure it.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quick Commands */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="text-sm text-gray-500">Quick commands:</span>
+                    {['enable', 'conf t', 'show run', 'sh ip int br', 'show vlan', '?'].map((cmd) => (
+                        <button
+                            key={cmd}
+                            onClick={() => !isProcessing && setInput(cmd)}
+                            disabled={isProcessing || !activeDeviceId}
+                            className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+                        >
+                            {cmd}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Mode Indicator */}
+                <div className="mt-2 text-xs text-gray-500 flex justify-between">
+                    <span>
+                        Current mode: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                            {activeDeviceId && topology.devices[activeDeviceId]?.config?.mode.replace('_', ' ') || 'none'}
                         </span>
-                        {isProcessing && <span className="text-green-600 animate-pulse">Processing...</span>}
-                    </div>
+                    </span>
+                    {isProcessing && <span className="text-green-600 animate-pulse">Processing...</span>}
                 </div>
             </div>
         </div>
+        </div >
     );
 }
