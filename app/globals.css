@@ -95,6 +95,14 @@
     @apply translate-x-full;
   }
 
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 font-bold text-white transition-all duration-200 bg-cisco-blue rounded-xl hover:bg-cisco-blue/90 active:scale-95 shadow-lg shadow-cisco-blue/20;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 font-bold text-slate-600 dark:text-slate-300 transition-all duration-200 bg-transparent border-2 border-slate-200 dark:border-white/10 rounded-xl hover:border-cisco-blue hover:text-cisco-blue active:scale-95;
+  }
+
   .heading-shine {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-cisco-blue to-slate-900 dark:from-white dark:via-cisco-blue dark:to-white bg-[length:200%_auto] animate-shine;
   }
