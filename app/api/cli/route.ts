@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
         const response: CLIResponse = await interpretCommand(state, command.trim());
 
         // Calculate new state
-        let newState = { ...state };
+        // Use the full state returned by interpreter if available (includes VLANs, Routes updates)
+        let newState = response.newState || { ...state };
 
         if (response.modeChange) {
             newState.mode = response.modeChange;

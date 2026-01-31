@@ -12,6 +12,7 @@ export interface CLIResponse {
     modeChange?: 'user' | 'privileged' | 'global_config' | 'interface_config' | 'router_config' | 'line_config' | 'dhcp_config' | 'vlan_config' | 'acl_config';
     hostnameChange?: string;
     error?: string;
+    newState?: CLIState; // Full state update (VLANs, Routes, etc.)
 }
 
 // ========== VALIDATION FUNCTIONS ==========
@@ -533,7 +534,7 @@ CONFIGURATION COMMANDS:
 ERROR MESSAGES (USE EXACT CISCO FORMATS):
 - Invalid command: "% Invalid input detected at '^' marker."
 - Incomplete command: "% Incomplete command."
-- Ambiguous command: "% Ambiguous command: \"xxx\""
+- Ambiguous command: "% Ambiguous command: \\"xxx\\""
 - Unknown command: "% Unknown command or computer name, or unable to find computer address"
 
 RESPOND WITH VALID JSON ONLY:
@@ -592,6 +593,169 @@ export async function interpretCommand(
         return modeError;
     }
 
+    /**
+     * Process commands locally to update state (VLANs, Routes, Interfaces)
+     * This ensures reliability instead of relying blindly on LLM
+     */
+    function processCommandForState(currentState: CLIState, cmd: string): CLIState {
+        const nextState = JSON.parse(JSON.stringify(currentState)); // Deep copy
+        const lowerCmd = cmd.toLowerCase().trim();
+        const parts = lowerCmd.split(' ');
+
+        // Initialize collections if missing (backward compatibility)
+        if (!nextState.vlans) nextState.vlans = [];
+        if (!nextState.routes) nextState.routes = [];
+        if (!nextState.modeHistory) nextState.modeHistory = [];
+
+        // Handle MODE NAVIGATION (Exit / End)
+        if (lowerCmd === 'exit') {
+            if (nextState.modeHistory.length > 0) {
+                nextState.mode = nextState.modeHistory.pop();
+                // Clear current interface if exiting interface config
+                if (nextState.mode !== 'interface_config') {
+                    nextState.currentInterface = undefined;
+                }
+            } else {
+                // Fallback default transitions if history empty
+                if (nextState.mode === 'global_config') nextState.mode = 'privileged';
+                else if (nextState.mode === 'privileged') nextState.mode = 'user';
+                else if (nextState.mode.includes('config')) nextState.mode = 'global_config';
+            }
+            return nextState;
+        }
+
+        if (lowerCmd === 'end' || (lowerCmd === 'exit' && nextState.mode === 'global_config')) {
+            if (nextState.mode !== 'user' && nextState.mode !== 'privileged') {
+                nextState.mode = 'privileged';
+                nextState.modeHistory = []; // Clear history on return to priv
+                nextState.currentInterface = undefined;
+                return nextState;
+            }
+        }
+
+        // Handle MODE ENTRIES (Push to history)
+        if (lowerCmd === 'conf t' || lowerCmd === 'configure terminal') {
+            if (nextState.mode === 'privileged') {
+                nextState.modeHistory.push('privileged');
+                nextState.mode = 'global_config';
+            }
+        }
+
+        // Command: "vlan 10"
+        if (nextState.mode === 'global_config' && parts[0] === 'vlan' && parts[1]) {
+            const vlanId = parseInt(parts[1]);
+            if (!isNaN(vlanId)) {
+                // Check if VLAN exists
+                const existing = nextState.vlans.find((v: any) => v.id === vlanId);
+                if (!existing) {
+                    nextState.vlans.push({ id: vlanId, name: `VLAN${vlanId.toString().padStart(4, '0')}`, ports: [] });
+                }
+                nextState.modeHistory.push('global_config');
+                nextState.mode = 'vlan_config';
+            }
+        }
+
+        // Command: "name SALES" (in vlan config)
+        if (nextState.mode === 'vlan_config' && parts[0] === 'name' && parts[1]) {
+            if (nextState.vlans.length > 0) {
+                // Update the most recently added/modified VLAN (simplified context)
+                nextState.vlans[nextState.vlans.length - 1].name = parts[1];
+            }
+        }
+
+        // Command: "ip route 192.168.10.0 255.255.255.0 10.0.0.1"
+        if (nextState.mode === 'global_config' && lowerCmd.startsWith('ip route')) {
+            const routeParts = cmd.split(' ');
+            if (routeParts.length >= 5) {
+                const network = routeParts[2];
+                const mask = routeParts[3];
+                const nextHop = routeParts[4];
+
+                const exists = nextState.routes.some((r: any) =>
+                    r.network === network && r.mask === mask && r.nextHop === nextHop
+                );
+
+                if (!exists) {
+                    nextState.routes.push({ network, mask, nextHop, type: 'static' });
+                }
+            }
+        }
+
+        // Command: "interface g0/0"
+        if ((nextState.mode === 'global_config' || nextState.mode === 'interface_config') && (parts[0] === 'interface' || parts[0] === 'int')) {
+            const ifaceName = parts[1]; // Need to normalize name (e.g. g0/0 -> GigabitEthernet0/0)
+            // Simple normalization mapping (can be expanded)
+            let normalized = ifaceName;
+            if (ifaceName.toLowerCase().startsWith('g')) normalized = ifaceName.replace(/^g[a-z]*/i, 'GigabitEthernet');
+            else if (ifaceName.toLowerCase().startsWith('f')) normalized = ifaceName.replace(/^f[a-z]*/i, 'FastEthernet');
+            else if (ifaceName.toLowerCase().startsWith('s')) normalized = ifaceName.replace(/^s[a-z]*/i, 'Serial');
+
+            // Find close match in interfaces keys
+            const match = Object.keys(nextState.interfaces).find(k => k.toLowerCase() === normalized.toLowerCase());
+            if (match) {
+                nextState.currentInterface = match;
+                if (nextState.mode !== 'interface_config') {
+                    nextState.modeHistory.push(nextState.mode);
+                    nextState.mode = 'interface_config';
+                }
+            }
+        }
+
+        // Command: "ip address 192..."
+        if (nextState.mode === 'interface_config' && nextState.currentInterface && lowerCmd.startsWith('ip address')) {
+            const ipParts = cmd.split(' ');
+            if (ipParts.length >= 4) {
+                const ip = ipParts[2];
+                const mask = ipParts[3];
+                if (nextState.interfaces[nextState.currentInterface]) {
+                    nextState.interfaces[nextState.currentInterface].ip = ip;
+                    nextState.interfaces[nextState.currentInterface].mask = mask;
+
+                    // Add connected route
+                    // Simplified subnet calculation
+                    const network = ip.split('.').map((octet, i) => parseInt(octet) & parseInt(mask.split('.')[i])).join('.');
+
+                    // Remove old connected route for this interface
+                    nextState.routes = nextState.routes.filter((r: any) => r.nextHop !== nextState.currentInterface);
+
+                    nextState.routes.push({
+                        network, mask, nextHop: nextState.currentInterface!, type: 'connected'
+                    });
+                }
+            }
+        }
+
+        // Command: "no shutdown"
+        if (nextState.mode === 'interface_config' && nextState.currentInterface && lowerCmd === 'no shutdown') {
+            if (nextState.interfaces[nextState.currentInterface]) {
+                nextState.interfaces[nextState.currentInterface].status = 'up';
+            }
+        }
+
+        // Command: "shutdown"
+        if (nextState.mode === 'interface_config' && nextState.currentInterface && lowerCmd === 'shutdown') {
+            if (nextState.interfaces[nextState.currentInterface]) {
+                nextState.interfaces[nextState.currentInterface].status = 'administratively down';
+            }
+        }
+
+        // Command: "description XXX"
+        if (nextState.mode === 'interface_config' && nextState.currentInterface && lowerCmd.startsWith('description')) {
+            const desc = command.substring(command.indexOf(' ') + 1);
+            if (nextState.interfaces[nextState.currentInterface]) {
+                nextState.interfaces[nextState.currentInterface].description = desc;
+            }
+        }
+
+        return nextState;
+    }
+
+    // 1. Calculate the New State (locally)
+    const newState = processCommandForState(state, command);
+
+    // 2. Format State for Context
+    const stateContext = formatStateForPrompt(newState);
+
     const modeNames: Record<string, string> = {
         user: 'User EXEC mode (Router>)',
         privileged: 'Privileged EXEC mode (Router#)',
@@ -604,9 +768,10 @@ export async function interpretCommand(
     };
 
     const systemPrompt = SYSTEM_PROMPT
-        .replace('{deviceType}', state.device || 'router')
-        .replace('{mode}', modeNames[state.mode] || state.mode)
-        .replace('{hostname}', state.hostname);
+        .replace('{deviceType}', newState.device || 'router')
+        .replace('{mode}', modeNames[newState.mode] || newState.mode)
+        .replace('{hostname}', newState.hostname)
+        + stateContext;
 
     try {
         const completion = await groq.chat.completions.create({
@@ -620,32 +785,31 @@ export async function interpretCommand(
             response_format: { type: 'json_object' },
         });
 
-        const responseText = completion.choices[0]?.message?.content || '';
-
-        try {
-            const response = JSON.parse(responseText) as CLIResponse;
-            return {
-                valid: response.valid ?? false,
-                output: response.output ?? '',
-                modeChange: response.modeChange,
-                hostnameChange: response.hostnameChange,
-                error: response.error,
-            };
-        } catch (parseError) {
-            // If JSON parsing fails, try to extract useful info
-            console.error('Failed to parse LLM response:', responseText);
-            return {
-                valid: false,
-                output: '% Error processing command',
-                error: 'Failed to parse response',
-            };
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('Empty response from AI');
         }
+
+        const response = JSON.parse(content) as CLIResponse;
+
+        // Merge our local state tracking with AI response
+        return {
+            ...response,
+            // Prioritize local mode/hostname changes if we detected them
+            modeChange: (command.trim().toLowerCase() === 'exit' || command.trim().toLowerCase() === 'end')
+                ? newState.mode as any
+                : (response.modeChange || newState.mode as any),
+            // Pass the FULL NEW STATE back to the API
+            newState: newState
+        };
+
     } catch (error) {
-        console.error('LLM API error:', error);
+        console.error('CLI AI Error:', error);
         return {
             valid: false,
-            output: '% System error - please try again',
+            output: '% System error',
             error: error instanceof Error ? error.message : 'Unknown error',
+            newState: newState // Still return the local state changes even if AI fails!
         };
     }
 }
@@ -668,12 +832,66 @@ export function getPrompt(hostname: string, mode: string): string {
 }
 
 export function getInitialState(deviceType: string = 'router', hostname: string = 'Router'): CLIState {
-    return {
+    const initialState: CLIState = {
         device: deviceType,
         mode: 'user',
         prompt: `${hostname}>`,
         runningConfig: '',
         hostname,
         interfaces: {},
+        vlans: [
+            { id: 1, name: 'default', ports: ['Fa0/1', 'Fa0/2', 'Fa0/3', 'Fa0/4', 'Gi0/1'] }
+        ],
+        routes: [],
+        modeHistory: [],
+        currentInterface: undefined
     };
+
+    // Initialize default interfaces
+    if (deviceType === 'router') {
+        initialState.interfaces = {
+            'GigabitEthernet0/0': { status: 'administratively down', ip: 'unassigned', mask: 'unknown' },
+            'GigabitEthernet0/1': { status: 'administratively down', ip: 'unassigned', mask: 'unknown' },
+            'Serial0/0/0': { status: 'administratively down', ip: 'unassigned', mask: 'unknown' }
+        };
+    } else {
+        // Switch interfaces
+        for (let i = 1; i <= 24; i++) {
+            initialState.interfaces[`FastEthernet0/${i}`] = { status: 'down', ip: 'unassigned', mask: 'unknown' };
+        }
+        initialState.interfaces['GigabitEthernet0/1'] = { status: 'down', ip: 'unassigned', mask: 'unknown' };
+        initialState.interfaces['GigabitEthernet0/2'] = { status: 'down', ip: 'unassigned', mask: 'unknown' };
+        initialState.interfaces['Vlan1'] = { status: 'administratively down', ip: 'unassigned', mask: 'unknown' };
+    }
+
+    return initialState;
+}
+
+/**
+ * Format the current state into text for the LLM prompt
+ */
+function formatStateForPrompt(state: CLIState): string {
+    let context = `\nCURRENT CONFIGURATION:\n`;
+
+    // VLANs
+    if (state.vlans && state.vlans.length > 0) {
+        context += `VLANs: ${state.vlans.map(v => `${v.id} (${v.name})`).join(', ')}\n`;
+    }
+
+    // Routes
+    if (state.routes && state.routes.length > 0) {
+        context += `Routes: ${state.routes.map(r => `${r.type === 'connected' ? 'C' : 'S'} ${r.network}/${r.mask} via ${r.nextHop}`).join(', ')}\n`;
+    }
+
+    // Interfaces (only show configured ones)
+    const configuredIfaces = Object.entries(state.interfaces)
+        .filter(([_, data]) => data.ip !== 'unassigned' || data.status === 'up');
+
+    if (configuredIfaces.length > 0) {
+        context += `Configured Interfaces:\n${configuredIfaces.map(([name, data]) =>
+            `  ${name}: ${data.ip} (${data.status})`
+        ).join('\n')}\n`;
+    }
+
+    return context;
 }

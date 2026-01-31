@@ -263,7 +263,14 @@ export interface CLIState {
     prompt: string;
     runningConfig: string;
     hostname: string;
-    interfaces: Record<string, { ip?: string; mask?: string; status: string }>;
+    interfaces: Record<string, { ip?: string; mask?: string; status: string; description?: string }>;
+    // New fields for configuration state tracking
+    vlans: Array<{ id: number; name: string; ports: string[] }>;
+    routes: Array<{ network: string; mask: string; nextHop: string; type: 'static' | 'connected' }>;
+    modeHistory: string[]; // Track mode history for proper exit navigation
+    currentInterface?: string; // Track which interface is being configured
+    ospfConfig?: { processId: number; networks: Array<{ network: string; wildcard: string; area: string }> };
+    dhcpPools?: Array<{ name: string; network?: string; defaultRouter?: string; dns?: string[] }>;
 }
 
 export interface CLIValidationRule {
