@@ -157,6 +157,18 @@ export const COMMAND_GRAMMAR: Record<CLIContext, Record<string, CommandNode>> = 
                 }
             }
         },
+        'router': {
+            token: 'router',
+            children: {
+                'rip': { token: 'rip' },
+                'ospf': {
+                    token: 'ospf',
+                    children: {
+                        '<id>': { token: '<id>', isArgument: true, argName: 'processId' }
+                    }
+                }
+            }
+        },
         'exit': { token: 'exit' },
         'end': { token: 'end' },
         'do': {
@@ -235,6 +247,42 @@ export const COMMAND_GRAMMAR: Record<CLIContext, Record<string, CommandNode>> = 
     },
 
     // Placeholders for other modes
-    router_config: { 'exit': { token: 'exit' }, 'end': { token: 'end' } },
+    router_config: {
+        'version': {
+            token: 'version',
+            children: {
+                '<ver>': { token: '<ver>', isArgument: true, argName: 'version' }
+            }
+        },
+        'network': {
+            token: 'network',
+            children: {
+                '<net>': {
+                    token: '<net>', isArgument: true, argName: 'network',
+                    children: {
+                        '<wildcard>': {
+                            token: '<wildcard>', isArgument: true, argName: 'wildcard',
+                            children: {
+                                'area': {
+                                    token: 'area',
+                                    children: {
+                                        '<area>': { token: '<area>', isArgument: true, argName: 'area' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        'no': {
+            token: 'no',
+            children: {
+                'auto-summary': { token: 'auto-summary' }
+            }
+        },
+        'exit': { token: 'exit' },
+        'end': { token: 'end' }
+    },
     line_config: { 'exit': { token: 'exit' }, 'end': { token: 'end' } }
 };

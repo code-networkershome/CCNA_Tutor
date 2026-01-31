@@ -4,39 +4,21 @@ import { CLIState } from '@/types';
 // STATE ENGINE: PURE FUNCTIONS FOR MUTATION
 // ==========================================
 
-/**
- * Creates a deep copy of the state to ensure immutability
- */
 export function cloneState(state: CLIState): CLIState {
     return JSON.parse(JSON.stringify(state));
 }
 
-/**
- * Update the device hostname
- */
 export function updateHostname(state: CLIState, newHostname: string): CLIState {
     const nextState = cloneState(state);
     nextState.hostname = newHostname;
-
-    // Update prompt based on new hostname and current mode
-    // Note: prompt update logic should probably be centralized, but basic sync here is good
     const modeChar = getModePromptChar(nextState.mode);
     nextState.prompt = `${newHostname}${modeChar}`;
-
     return nextState;
 }
 
-/**
- * Transition strict CLI modes
- */
 export function transitionMode(state: CLIState, newMode: CLIState['mode']): CLIState {
     const nextState = cloneState(state);
-
-    // Handle mode history/stacking logic if needed?
-    // For now, simple transition. The Processor will handle the "exit" validation logic.
     nextState.mode = newMode;
-
-    // Update prompt
     const modeChar = getModePromptChar(newMode);
     let promptPrefix = nextState.hostname;
 
@@ -51,8 +33,6 @@ export function transitionMode(state: CLIState, newMode: CLIState['mode']): CLIS
     }
 
     nextState.prompt = `${promptPrefix}${modeChar}`;
-
-    // Clear context if leaving specific modes
     if (newMode !== 'interface_config') nextState.currentInterface = undefined;
 
     return nextState;
@@ -62,135 +42,204 @@ function getModePromptChar(mode: CLIState['mode']): string {
     return mode === 'user' ? '>' : '#';
 }
 
-/**
- * Configure Interface IP Address
- */
+// ============ INTERFACE CONFIG ============
+
 export function setInterfaceIp(state: CLIState, ifaceName: string, ip: string, mask: string): CLIState {
     const nextState = cloneState(state);
-
-    // Normalize interface name
-    // (Assuming tokenizer normalized it, but safety check)
-    // We will assume the processor passes the exact key for now or we match case-insensitive
     const targetIface = Object.keys(nextState.interfaces).find(k => k.toLowerCase() === ifaceName.toLowerCase());
 
     if (targetIface && nextState.interfaces[targetIface]) {
         nextState.interfaces[targetIface].ip = ip;
         nextState.interfaces[targetIface].mask = mask;
-
-        // Auto-add connected route
-        // Logic: Calculate network address based on IP/Mask
-        // Remove old connected route for this interface
-        // Add new connected route
-
-        const network = calculateNetworkAddress(ip, mask);
-
-        // Remove old connected route for this interface
-        nextState.routes = nextState.routes.filter(r => r.nextHop !== targetIface);
-
-        // Add new
-        nextState.routes.push({
-            network,
-            mask,
-            nextHop: targetIface,
-            type: 'connected'
-        });
+        return calculateRoutingTable(nextState);
     }
-
     return nextState;
 }
 
-/**
- * Set Interface Status (no shut / shutdown)
- */
 export function setInterfaceStatus(state: CLIState, ifaceName: string, status: 'up' | 'administratively down'): CLIState {
     const nextState = cloneState(state);
     const targetIface = Object.keys(nextState.interfaces).find(k => k.toLowerCase() === ifaceName.toLowerCase());
 
     if (targetIface && nextState.interfaces[targetIface]) {
         nextState.interfaces[targetIface].status = status;
-
-        // If interface goes down, remove connected route?
-        // Real IOS behavior: connected route only exists if Line Protocol is UP.
-        // For simulation simplicity: if admin down, remove connected route.
-        if (status === 'administratively down') {
-            nextState.routes = nextState.routes.filter(r => r.nextHop !== targetIface);
-        } else {
-            // Restore connected route if IP exists
-            const iface = nextState.interfaces[targetIface];
-            if (iface.ip && iface.mask && iface.ip !== 'unassigned') {
-                const network = calculateNetworkAddress(iface.ip, iface.mask);
-                // Check redundancy
-                const exists = nextState.routes.some(r => r.nextHop === targetIface && r.network === network);
-                if (!exists) {
-                    nextState.routes.push({
-                        network,
-                        mask: iface.mask,
-                        nextHop: targetIface,
-                        type: 'connected'
-                    });
-                }
-            }
-        }
+        return calculateRoutingTable(nextState);
     }
-
     return nextState;
 }
 
-/**
- * Create or Update VLAN
- */
+// ============ VLAN CONFIG ============
+
 export function configureVlan(state: CLIState, vlanId: number, name?: string): CLIState {
     const nextState = cloneState(state);
-
-    // Ensure VLANs array exists
     if (!nextState.vlans) nextState.vlans = [];
 
     const existingIndex = nextState.vlans.findIndex(v => v.id === vlanId);
 
     if (existingIndex >= 0) {
-        // Update existing
         if (name) nextState.vlans[existingIndex].name = name;
     } else {
-        // Create new
         nextState.vlans.push({
             id: vlanId,
             name: name || `VLAN${vlanId.toString().padStart(4, '0')}`,
             ports: []
         });
-        // Sort VLANs by ID
         nextState.vlans.sort((a, b) => a.id - b.id);
     }
-
     return nextState;
 }
 
-/**
- * Add Static Route
- */
+// ============ STATIC ROUTING ============
+
 export function addStaticRoute(state: CLIState, network: string, mask: string, nextHop: string): CLIState {
     const nextState = cloneState(state);
-    if (!nextState.routes) nextState.routes = [];
+    if (!nextState.staticRoutes) nextState.staticRoutes = [];
 
-    // Idempotency check
-    const exists = nextState.routes.some(r => r.network === network && r.mask === mask && r.nextHop === nextHop);
+    // Idempotency
+    const exists = nextState.staticRoutes.some(r => r.network === network && r.mask === mask && r.nextHop === nextHop);
     if (!exists) {
-        nextState.routes.push({
-            network,
-            mask,
-            nextHop,
+        nextState.staticRoutes.push({ network, mask, nextHop });
+    }
+    return calculateRoutingTable(nextState);
+}
+
+export function removeStaticRoute(state: CLIState, network: string, mask: string, nextHop: string): CLIState {
+    const nextState = cloneState(state);
+    if (nextState.staticRoutes) {
+        nextState.staticRoutes = nextState.staticRoutes.filter(r => !(r.network === network && r.mask === mask && r.nextHop === nextHop));
+    }
+    return calculateRoutingTable(nextState);
+}
+
+// ============ DYNAMIC ROUTING (RIP/OSPF) ============
+
+export function configureRip(state: CLIState): CLIState {
+    const nextState = cloneState(state);
+    if (!nextState.ripConfig) {
+        nextState.ripConfig = { version: 2, networks: [], autoSummary: false };
+    }
+    return nextState;
+}
+
+export function addRipNetwork(state: CLIState, network: string): CLIState {
+    const nextState = cloneState(state);
+    if (nextState.ripConfig && !nextState.ripConfig.networks.includes(network)) {
+        nextState.ripConfig.networks.push(network);
+    }
+    return calculateRoutingTable(nextState);
+}
+
+export function configureOspf(state: CLIState, processId: number): CLIState {
+    const nextState = cloneState(state);
+    if (!nextState.ospfConfig) {
+        nextState.ospfConfig = { processId, networks: [] };
+    } else if (nextState.ospfConfig.processId !== processId) {
+        // Switch process? For now just overwrite or update ID (simplified)
+        nextState.ospfConfig.processId = processId;
+    }
+    return nextState;
+}
+
+export function addOspfNetwork(state: CLIState, network: string, wildcard: string, area: number): CLIState {
+    const nextState = cloneState(state);
+    if (nextState.ospfConfig) {
+        const exists = nextState.ospfConfig.networks.some(n => n.network === network && n.wildcard === wildcard && n.area === area);
+        if (!exists) {
+            nextState.ospfConfig.networks.push({ network, wildcard, area });
+        }
+    }
+    return calculateRoutingTable(nextState);
+}
+
+// ============ ROUTING TABLE CALCULATION ============
+
+export function calculateRoutingTable(state: CLIState): CLIState {
+    // 1. Reset Active Routes
+    const newRoutes: CLIState['routes'] = [];
+    const connectedSubnets: Array<{ net: string, mask: string, iface: string }> = [];
+
+    // 2. Connected Routes (AD 0)
+    // Only if Status is UP and IP is valid
+    Object.entries(state.interfaces).forEach(([name, iface]) => {
+        if (iface.status === 'up' && iface.ip && iface.ip !== 'unassigned' && iface.mask) {
+            const network = calculateNetworkAddress(iface.ip, iface.mask);
+            newRoutes.push({
+                network,
+                mask: iface.mask,
+                nextHop: name, // specific format for connected
+                type: 'connected'
+            });
+            connectedSubnets.push({ net: network, mask: iface.mask, iface: name });
+        }
+    });
+
+    // 3. Static Routes (AD 1)
+    // Only if Next Hop is reachable (recursive lookup) or generic persistence (simplified for CCNA)
+    // Packet Tracer Logic: Static route installs if interface is UP.
+    // We will assume "always install" if interface implies it, or just install it (Standard behavior)
+    // Better: Check if nextHop matches any connected subnet OR is an interface name (not supported in our struct yet)
+    state.staticRoutes?.forEach(r => {
+        // Validity check: Is nextHop on a connected subnet?
+        // const isReachable = connectedSubnets.some(sub => isIpInSubnet(r.nextHop, sub.net, sub.mask));
+        // For simplicity: Install it. IOS installs static routes pointing to interfaces always. 
+        // Pointing to IP requires reachability. We'll skip complex check for now.
+        newRoutes.push({
+            network: r.network,
+            mask: r.mask,
+            nextHop: r.nextHop,
             type: 'static'
+        });
+    });
+
+    // 4. Dynamic (RIP - AD 120, OSPF - AD 110)
+    // MOCK INJECTION: If any interface matches a network statement, inject a "Learned" route
+
+    // RIP
+    if (state.ripConfig && state.ripConfig.networks.length > 0) {
+        // Check if any connected subnet is covered by RIP network
+        const isRipActive = connectedSubnets.some(sub => {
+            // Simplified: does rip config network equal subnet? or partial match?
+            // RIP 'network' command is classful usually, but let's assume exact or class match.
+            // We'll simplistic check: if rip configs has the subnet network string
+            return state.ripConfig!.networks.includes(sub.net);
+            // Better: 'network 10.0.0.0' matches '10.1.1.0/24'. 
+            // We'll skip complex classful matching. User usually types classful.
+        });
+
+        if (isRipActive) {
+            // Inject Mock Route
+            newRoutes.push({
+                network: '192.168.100.0',
+                mask: '255.255.255.0',
+                nextHop: '10.1.1.2', // Mock neighbor
+                type: 'rip'
+            });
+        }
+    }
+
+    // OSPF
+    if (state.ospfConfig && state.ospfConfig.networks.length > 0) {
+        // Check activation
+        // OSPF uses wildcard matching. 
+        // Simplified check: exact match of network/wildcard logic is hard without helper.
+        // We act if any network is present.
+
+        newRoutes.push({
+            network: '172.16.1.0',
+            mask: '255.255.255.0',
+            nextHop: '10.1.1.2',
+            type: 'ospf'
         });
     }
 
-    return nextState;
+    state.routes = newRoutes;
+    return state;
 }
 
-// ============ HELPER FUNCTIONS ============
+// ============ HELPERS ============
 
 function calculateNetworkAddress(ip: string, mask: string): string {
     const ipOctets = ip.split('.').map(Number);
     const maskOctets = mask.split('.').map(Number);
-
     const networkOctets = ipOctets.map((octet, i) => octet & maskOctets[i]);
     return networkOctets.join('.');
 }

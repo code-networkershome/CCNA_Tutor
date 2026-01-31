@@ -266,10 +266,16 @@ export interface CLIState {
     interfaces: Record<string, { ip?: string; mask?: string; status: string; description?: string }>;
     // New fields for configuration state tracking
     vlans: Array<{ id: number; name: string; ports: string[] }>;
-    routes: Array<{ network: string; mask: string; nextHop: string; type: 'static' | 'connected' }>;
+    routes: Array<{ network: string; mask: string; nextHop: string; type: 'static' | 'connected' | 'rip' | 'ospf' }>; // Active RIB
+    staticRoutes?: Array<{ network: string; mask: string; nextHop: string }>; // Configured Static Routes
     modeHistory: string[]; // Track mode history for proper exit navigation
     currentInterface?: string; // Track which interface is being configured
-    ospfConfig?: { processId: number; networks: Array<{ network: string; wildcard: string; area: string }> };
+    currentRouter?: 'rip' | 'ospf'; // Track active routing protocol context
+
+    // Dynamic Routing Config
+    ripConfig?: { version: number; networks: string[]; autoSummary: boolean };
+    ospfConfig?: { processId: number; networks: Array<{ network: string; wildcard: string; area: number }> };
+
     dhcpPools?: Array<{ name: string; network?: string; defaultRouter?: string; dns?: string[] }>;
 }
 
