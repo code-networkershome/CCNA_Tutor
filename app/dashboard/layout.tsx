@@ -24,6 +24,7 @@ import type { SessionUser } from '@/types';
 const ADMIN_NAV = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { href: '/dashboard/labs', icon: Terminal, label: 'Labs Center' },
+    { href: '/dashboard/flashcards', icon: BookOpen, label: 'Flashcards' },
     { href: '/dashboard/generation', icon: Zap, label: 'AI Generation' },
     { href: '/dashboard/quizzes', icon: Layers, label: 'Quiz Bank' },
     { href: '/dashboard/review', icon: ShieldAlert, label: 'Content Review' },
@@ -79,7 +80,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden">
+        <div className="h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden">
             {/* Sidebar */}
             <motion.aside
                 initial={false}

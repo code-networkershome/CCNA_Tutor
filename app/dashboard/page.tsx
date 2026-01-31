@@ -73,9 +73,6 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="px-5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 shadow-sm text-sm font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2 hover:bg-slate-50 transition-colors">
-                        <BarChart3 className="w-4 h-4" /> Export Data
-                    </button>
                     <Link href="/dashboard/labs" className="btn-premium py-2.5 px-6 text-sm">
                         <Plus className="w-4 h-4 mr-2" /> New Resource
                     </Link>
@@ -193,37 +190,7 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Maintenance / Security Status Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="glass-card p-10 bg-slate-900 text-white relative overflow-hidden group border-none">
-                    <Globe className="absolute -top-10 -right-10 w-48 h-48 opacity-5 group-hover:rotate-12 transition-transform duration-1000" />
-                    <h3 className="text-2xl font-black mb-4 flex items-center gap-3">
-                        <Shield className="w-6 h-6 text-emerald-400" />
-                        Firewall Insight
-                    </h3>
-                    <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                        Intrusion prevention system is operating at peak capacity. Global traffic patterns show no anomalies in the last 24 hours.
-                    </p>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                        <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Network Secured</span>
-                    </div>
-                </div>
-
-                <div className="glass-card p-10 bg-indigo-600 text-white relative overflow-hidden group border-none">
-                    <Zap className="absolute -bottom-10 -right-10 w-48 h-48 opacity-10 group-hover:scale-110 transition-transform duration-1000" />
-                    <h3 className="text-2xl font-black mb-4 flex items-center gap-3">
-                        <Zap className="w-6 h-6 text-amber-400" />
-                        Performance Boost
-                    </h3>
-                    <p className="text-indigo-200 text-sm mb-8 leading-relaxed">
-                        Your server farm is utilizing 42% resources. Consider deploying the new Lab clusters to the European region to reduce latency.
-                    </p>
-                    <button className="bg-white text-indigo-600 py-3 px-8 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">
-                        Optimize Cluster
-                    </button>
-                </div>
-            </div>
         </div>
+        </div >
     );
 }
