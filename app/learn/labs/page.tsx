@@ -574,78 +574,76 @@ export default function LabsPage() {
                                 <span className="text-yellow-400">💡 Tip: This terminal is powered by AI and understands natural Cisco commands!</span>
                             </div>
 
-                        </div>
-
-                        {activeDeviceId && topology.devices[activeDeviceId] ? (
-                            <>
-                                {commandHistory.map((entry, i) => (
-                                    <div key={i} className="mb-1">
-                                        <div>
-                                            <span className="cli-prompt">{entry.prompt}</span>
-                                            <span className="cli-command">{entry.command.command}</span>
-                                        </div>
-                                        {entry.command.output && (
-                                            <div className={entry.command.valid ? 'cli-output whitespace-pre-wrap' : 'cli-error whitespace-pre-wrap'}>
-                                                {entry.command.output}
+                            {activeDeviceId && topology.devices[activeDeviceId] ? (
+                                <>
+                                    {commandHistory.map((entry, i) => (
+                                        <div key={i} className="mb-1">
+                                            <div>
+                                                <span className="cli-prompt">{entry.prompt}</span>
+                                                <span className="cli-command">{entry.command.command}</span>
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            {entry.command.output && (
+                                                <div className={entry.command.valid ? 'cli-output whitespace-pre-wrap' : 'cli-error whitespace-pre-wrap'}>
+                                                    {entry.command.output}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
 
-                                <form onSubmit={handleSubmit} className="flex">
-                                    <span className="cli-prompt">{topology.devices[activeDeviceId].config?.prompt || '>'}</span>
-                                    {isProcessing ? (
-                                        <span className="animate-pulse text-gray-400 ml-1">▋</span>
-                                    ) : (
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                            className="flex-1 bg-transparent border-none outline-none text-white font-mono"
-                                            autoComplete="off"
-                                            spellCheck={false}
-                                            autoFocus
-                                        />
-                                    )}
-                                </form>
-                            </>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                                <div className="text-4xl mb-2">🔌</div>
-                                <p>Select a device from the topology or toolbar to configure it.</p>
-                            </div>
-                        )}
+                                    <form onSubmit={handleSubmit} className="flex">
+                                        <span className="cli-prompt">{topology.devices[activeDeviceId].config?.prompt || '>'}</span>
+                                        {isProcessing ? (
+                                            <span className="animate-pulse text-gray-400 ml-1">▋</span>
+                                        ) : (
+                                            <input
+                                                ref={inputRef}
+                                                type="text"
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                onKeyDown={handleKeyDown}
+                                                className="flex-1 bg-transparent border-none outline-none text-white font-mono"
+                                                autoComplete="off"
+                                                spellCheck={false}
+                                                autoFocus
+                                            />
+                                        )}
+                                    </form>
+                                </>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                    <div className="text-4xl mb-2">🔌</div>
+                                    <p>Select a device from the topology or toolbar to configure it.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Quick Commands */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <span className="text-sm text-gray-500">Quick commands:</span>
+                        {['enable', 'conf t', 'show run', 'sh ip int br', 'show vlan', '?'].map((cmd) => (
+                            <button
+                                key={cmd}
+                                onClick={() => !isProcessing && setInput(cmd)}
+                                disabled={isProcessing || !activeDeviceId}
+                                className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+                            >
+                                {cmd}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Mode Indicator */}
+                    <div className="mt-2 text-xs text-gray-500 flex justify-between">
+                        <span>
+                            Current mode: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">
+                                {activeDeviceId && topology.devices[activeDeviceId]?.config?.mode.replace('_', ' ') || 'none'}
+                            </span>
+                        </span>
+                        {isProcessing && <span className="text-green-600 animate-pulse">Processing...</span>}
                     </div>
                 </div>
-
-                {/* Quick Commands */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="text-sm text-gray-500">Quick commands:</span>
-                    {['enable', 'conf t', 'show run', 'sh ip int br', 'show vlan', '?'].map((cmd) => (
-                        <button
-                            key={cmd}
-                            onClick={() => !isProcessing && setInput(cmd)}
-                            disabled={isProcessing || !activeDeviceId}
-                            className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
-                        >
-                            {cmd}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Mode Indicator */}
-                <div className="mt-2 text-xs text-gray-500 flex justify-between">
-                    <span>
-                        Current mode: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">
-                            {activeDeviceId && topology.devices[activeDeviceId]?.config?.mode.replace('_', ' ') || 'none'}
-                        </span>
-                    </span>
-                    {isProcessing && <span className="text-green-600 animate-pulse">Processing...</span>}
-                </div>
             </div>
-        </div>
         </div >
     );
 }
