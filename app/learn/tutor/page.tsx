@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import MarkdownMessage from '@/components/MarkdownMessage';
 
 interface Message {
     id: string;
@@ -360,7 +361,7 @@ export default function TutorPage() {
                                         : 'bg-gray-100 dark:bg-gray-800'
                                         }`}
                                 >
-                                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                                    <MarkdownMessage content={message.content} isUser={message.role === 'user'} />
 
                                     {/* Follow-up Questions (Socratic Mode) */}
                                     {message.followUpQuestions && message.followUpQuestions.length > 0 && (
